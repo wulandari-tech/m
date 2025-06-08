@@ -1,0 +1,17 @@
+<h1><i class="fas fa-receipt"></i> Status Deposit</h1>
+<hr>
+<div class="alert alert-<%= alertType %>" role="alert">
+    <%= message %>
+</div>
+
+<% if (order_id && order_id !== 'CLOSED') { %>
+    <p>Order ID Anda: <strong><%= order_id %></strong></p>
+    <p>Silakan periksa saldo Anda atau riwayat transaksi untuk detail lebih lanjut.</p>
+<% } else if (order_id === 'CLOSED') { %>
+    <p>Anda menutup jendela pembayaran sebelum menyelesaikan transaksi.</p>
+<% } %>
+
+<div class="mt-3">
+    <a href="/dashboard/deposit" class="btn btn-primary"><i class="fas fa-plus-circle"></i> Deposit Lagi</a>
+    <a href="/dashboard" class="btn btn-secondary"><i class="fas fa-tachometer-alt"></i> Kembali ke Dashboard</a>
+</div>

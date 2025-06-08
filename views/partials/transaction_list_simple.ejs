@@ -1,0 +1,25 @@
+<% if (transactions && transactions.length > 0) { %>
+    <ul class="list-group list-group-flush">
+        <% transactions.forEach(trx => { %>
+            <li class="list-group-item ps-0">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1"><%= trx.description %></h6>
+                    <small class="text-muted"><%= new Date(trx.createdAt).toLocaleDateString('id-ID') %></small>
+                </div>
+                <p class="mb-1 <%= trx.amount > 0 ? 'text-success' : 'text-danger' %>">
+                    <%= trx.amount.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }) %>
+                </p>
+                <small class="text-muted">Status: 
+                    <span class="badge 
+                        <%= trx.status === 'success' ? 'bg-success' : '' %>
+                        <%= trx.status === 'pending' ? 'bg-warning text-dark' : '' %>
+                        <%= ['failed', 'cancelled', 'expired'].includes(trx.status) ? 'bg-danger' : '' %>
+                    "><%= trx.status %></span>
+                    <% if (trx.paymentMethod) { %> | Metode: <%= trx.paymentMethod %><% } %>
+                </small>
+            </li>
+        <% }); %>
+    </ul>
+<% } else { %>
+    <p class="text-muted">Belum ada transaksi.</p>
+<% } %>
