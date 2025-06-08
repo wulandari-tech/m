@@ -7,9 +7,16 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['customer', 'seller', 'admin'], default: 'customer' },
     balance: { type: Number, default: 0, min: 0 },
+    
+    profilePicture: { type: String, default: '/images/default-avatar.png' }, 
+    storeName: { type: String, trim: true },
+    bio: { type: String, trim: true, maxlength: 250 },
+    location: { type: String, trim: true }, 
+    website: { type: String, trim: true }, 
     qrisBaseCode: { type: String, trim: true },
     qrisMerchantId: { type: String, trim: true },
     qrisApiKey: { type: String, trim: true },
+    
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
@@ -17,6 +24,9 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function(next) {
     if (this.isModified('password')) {
         this.password = await bcrypt.hash(this.password, 12);
+    }
+    if (!this.storeName && (this.role === 'seller' || this.role === 'admin')) {
+        this.storeName = this.name;
     }
     this.updatedAt = Date.now();
     next();

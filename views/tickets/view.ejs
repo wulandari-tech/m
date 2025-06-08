@@ -1,0 +1,276 @@
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
+
+<div class="row">
+    <div class="col-md-8">
+        <h1 class="d-flex align-items-center">
+            <i class="fas fa-ticket-alt me-2"></i>
+            <span id="ticketSubject"><%= ticket.subject %></span>
+        </h1>
+        <p class="text-muted mb-2">
+            Tiket ID: #<span id="ticketIdShort"><%= ticket._id.toString().slice(-6).toUpperCase() %></span>
+            <input type="hidden" id="ticketIdFull" value="<%= ticket._id.toString() %>">
+            <input type="hidden" id="currentUserId" value="<%= currentUser._id.toString() %>">
+            <input type="hidden" id="currentUserProfilePic" value="<%= currentUser.profilePicture %>">
+            <input type="hidden" id="currentUserName" value="<%= currentUser.name %>">
+
+            <span class="ms-2 badge 
+                <%= ticket.status === 'open' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : '' %>
+                <%= ticket.status === 'pending_reply' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : '' %>
+                <%= ticket.status === 'resolved' ? 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' : '' %>
+                <%= ticket.status === 'closed' ? 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' : '' %>
+            " id="ticketStatusBadge">
+                Status: <span id="ticketStatusText"><%= ticket.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %></span>
+            </span>
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end mt-2 mt-md-0">
+        <% if (isOwner && (ticket.status === 'open' || ticket.status === 'pending_reply')) { %>
+            <form action="/api/tickets/<%= ticket._id %>/close?_method=POST" method="POST" class="d-inline needs-loading">
+                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-times-circle me-1"></i> Tutup Tiket Ini</button>
+            </form>
+        <% } %>
+    </div>
+</div>
+<hr class="mb-3">
+
+<div class="row">
+    <div class="col-md-3 order-md-2 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 small text-muted">Detail Tiket</h5>
+            </div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item"><strong>User:</strong> <%= ticket.user.name %></li>
+                <li class="list-group-item"><strong>Dibuat:</strong> <%= new Date(ticket.createdAt).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) %></li>
+                <li class="list-group-item"><strong>Update Terakhir:</strong> <span id="ticketLastUpdate"><%= new Date(ticket.updatedAt).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) %></span></li>
+                <li class="list-group-item"><strong>Prioritas:</strong> 
+                     <span class="badge 
+                        <%= ticket.priority === 'high' ? 'bg-danger' : '' %>
+                        <%= ticket.priority === 'medium' ? 'bg-warning text-dark' : '' %>
+                        <%= ticket.priority === 'low' ? 'bg-secondary' : '' %>
+                    "><%= ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1) %></span>
+                </li>
+                <% if (ticket.sc) { %>
+                    <li class="list-group-item"><strong>Terkait SC:</strong> <a href="/sc/<%= ticket.sc._id %>" target="_blank"><%= ticket.sc.title %></a></li>
+                <% } %>
+                 <% if (ticket.order) { %>
+                    <li class="list-group-item"><strong>Terkait Pesanan:</strong> <a href="/dashboard/orders" target="_blank">
+                        <%= ticket.order.scTitleAtPurchase || (ticket.order.sourceCode ? ticket.order.sourceCode.title : `ID ${ticket.order._id.toString().slice(-5)}`) %>
+                    </a></li>
+                <% } %>
+                <% if (ticket.assignedTo) { %>
+                    <li class="list-group-item"><strong>Ditangani Oleh:</strong> <span id="ticketAssignedTo"><%= ticket.assignedTo.name %> (<%= ticket.assignedTo.role %>)</span></li>
+                <% } else if (ticket.user._id.toString() !== currentUser._id.toString() && currentUser.role !== 'admin') { %>
+                     <li class="list-group-item"><strong>Penerima:</strong> <%= ticket.user.name %></li>
+                <% } else if (!ticket.assignedTo && (currentUser.role === 'admin' || currentUser._id.toString() === ticket.user._id.toString())) { %>
+                     <li class="list-group-item"><strong>Ditangani Oleh:</strong> <span class="text-muted">Belum ada</span></li>
+                <% } %>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-9 order-md-1">
+        <div id="messagesContainer" class="messages-container mb-3 shadow-sm" style="height: 400px; overflow-y: auto; border:1px solid #e0e0e0; padding:15px; border-radius:var(--border-radius); background-color: #f9f9f9;">
+            <% ticket.messages.forEach(msg => { %>
+                <div class="message mb-3 <%= msg.sender._id.toString() === currentUser._id.toString() ? 'sent' : 'received' %>">
+                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'bg-primary text-white ms-auto' : 'bg-light border' %>" style="max-width: 80%;">
+                        <p class="mb-1 message-content"><%- msg.message.replace(/\n/g, '<br>') %></p>
+                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'text-light-emphasis' : 'text-muted' %>">
+                            <img src="<%= msg.sender.profilePicture %>" alt="<%= msg.sender.name %>" class="rounded-circle me-1" width="20" height="20" style="object-fit:cover;">
+                            <strong><%= msg.sender._id.toString() === currentUser._id.toString() ? 'Anda' : msg.sender.name %></strong> 
+                            - <%= new Date(msg.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) %>
+                        </small>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+        <div id="typingIndicator" class="small text-muted fst-italic mb-2" style="height: 20px;"></div>
+
+        <% if (ticket.status !== 'closed' && ticket.status !== 'resolved') { %>
+        <div class="reply-form mt-0 pt-3 border-top">
+            <form id="replyTicketForm" class="needs-validation" novalidate>
+                <div class="mb-2">
+                    <label for="messageInput" class="form-label visually-hidden">Pesan Balasan Anda</label>
+                    <textarea class="form-control" id="messageInput" name="message" rows="3" placeholder="Ketik balasan Anda di sini..." minlength="1" required></textarea>
+                    <div class="invalid-feedback">Pesan tidak boleh kosong.</div>
+                </div>
+                <button type="submit" id="sendReplyButton" class="btn btn-success"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
+            </form>
+        </div>
+        <% } else { %>
+            <div class="alert alert-secondary text-center">
+                <i class="fas fa-lock me-1"></i> Tiket ini telah ditutup atau diselesaikan. Tidak ada balasan lebih lanjut yang dapat dikirim.
+            </div>
+        <% } %>
+    </div>
+</div>
+<style>
+    .message.sent .message-bubble { float: right; clear: both; }
+    .message.received .message-bubble { float: left; clear: both; }
+    .message-bubble { display: inline-block; }
+    .message:after { content: ""; display: table; clear: both; }
+    .message-content { word-break: break-word; }
+</style>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+    const ticketId = document.getElementById('ticketIdFull').value;
+    const currentUserId = document.getElementById('currentUserId').value;
+    const currentUserProfilePic = document.getElementById('currentUserProfilePic').value;
+    const currentUserName = document.getElementById('currentUserName').value;
+
+    const messagesContainer = document.getElementById('messagesContainer');
+    const replyForm = document.getElementById('replyTicketForm');
+    const messageInput = document.getElementById('messageInput');
+    const sendReplyButton = document.getElementById('sendReplyButton');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const ticketStatusBadge = document.getElementById('ticketStatusBadge');
+    const ticketStatusText = document.getElementById('ticketStatusText');
+
+
+    function scrollToBottom() {
+        if (messagesContainer) {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+    scrollToBottom();
+
+    if (ticketId) {
+        socket.emit('joinTicketRoom', ticketId);
+    }
+
+    if (replyForm && messageInput) {
+        replyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!this.checkValidity()) {
+                this.classList.add('was-validated');
+                return;
+            }
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                socket.emit('newTicketMessage', {
+                    ticketId: ticketId,
+                    message: messageText
+                });
+                messageInput.value = '';
+                this.classList.remove('was-validated');
+                socket.emit('stopTyping', { ticketId }); // Kirim event stop typing
+            }
+        });
+
+        let typingTimeout;
+        messageInput.addEventListener('input', () => {
+            socket.emit('typing', { ticketId, isTyping: true });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.emit('stopTyping', { ticketId });
+            }, 2000); // Berhenti typing jika tidak ada input selama 2 detik
+        });
+    }
+    
+    socket.on('receiveTicketMessage', function(data) {
+        if (data.ticketId === ticketId) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'mb-3');
+            if (data.sender._id === currentUserId) {
+                messageDiv.classList.add('sent');
+            } else {
+                messageDiv.classList.add('received');
+            }
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.classList.add('message-bubble', 'p-3', 'rounded', 'shadow-sm');
+            bubbleDiv.style.maxWidth = '80%';
+            if (data.sender._id === currentUserId) {
+                bubbleDiv.classList.add('bg-primary', 'text-white', 'ms-auto');
+            } else {
+                bubbleDiv.classList.add('bg-light', 'border');
+            }
+
+            const contentP = document.createElement('p');
+            contentP.classList.add('mb-1', 'message-content');
+            contentP.innerHTML = data.message.replace(/\n/g, '<br>');
+
+            const metaSmall = document.createElement('small');
+            metaSmall.classList.add('message-meta', 'd-block', 'text-end');
+            if (data.sender._id === currentUserId) {
+                metaSmall.classList.add('text-light-emphasis');
+            } else {
+                metaSmall.classList.add('text-muted');
+            }
+
+            const senderImg = document.createElement('img');
+            senderImg.src = data.sender.profilePicture;
+            senderImg.alt = data.sender.name;
+            senderImg.classList.add('rounded-circle', 'me-1');
+            senderImg.width = 20;
+            senderImg.height = 20;
+            senderImg.style.objectFit = 'cover';
+
+            const senderNameStrong = document.createElement('strong');
+            senderNameStrong.textContent = data.sender._id === currentUserId ? 'Anda' : data.sender.name;
+            
+            const timeFormat = new Date(data.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'});
+
+            metaSmall.appendChild(senderImg);
+            metaSmall.appendChild(senderNameStrong);
+            metaSmall.append(` - ${timeFormat}`);
+            
+            bubbleDiv.appendChild(contentP);
+            bubbleDiv.appendChild(metaSmall);
+            messageDiv.appendChild(bubbleDiv);
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+            
+            // Update status jika pesan dari non-owner
+            if (data.sender._id !== document.getElementById('ticketUserId').value) { // Asumsi ada #ticketUserId
+                if (ticketStatusText) ticketStatusText.textContent = "Open"; // Sederhana, idealnya status dari server
+                 if (ticketStatusBadge) {
+                    ticketStatusBadge.className = 'ms-2 badge bg-success-subtle text-success-emphasis border border-success-subtle';
+                 }
+            }
+             typingIndicator.textContent = ''; // Hapus indikator typing jika ada pesan baru
+        }
+    });
+
+    socket.on('userTyping', (data) => {
+        if (data.ticketId === ticketId && data.userId !== currentUserId) {
+            typingIndicator.textContent = `${data.userName || 'Seseorang'} sedang mengetik...`;
+        }
+    });
+
+    socket.on('userStopTyping', (data) => {
+        if (data.ticketId === ticketId && data.userId !== currentUserId) {
+            typingIndicator.textContent = '';
+        }
+    });
+
+    socket.on('socketError', (error) => {
+        console.error('Socket Error:', error.message);
+        // Tampilkan error ke user jika perlu, misal dengan toast Bootstrap
+        const toastContainer = document.querySelector('.toast-container') || document.body;
+        const toastHTML = `
+            <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body">
+                  <i class="fas fa-exclamation-circle me-2"></i> ${error.message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>`;
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const newToastEl = toastContainer.lastElementChild;
+        const newToast = new bootstrap.Toast(newToastEl, {delay: 5000});
+        newToast.show();
+    });
+   
+    // <input type="hidden" id="ticketUserId" value="<%= ticket.user._id.toString() %>">
+    window.addEventListener('beforeunload', () => {
+        if (ticketId) {
+            socket.emit('leaveTicketRoom', ticketId);
+        }
+    });
+});
+</script>

@@ -4,6 +4,24 @@ const Transaction = require('../models/transaction');
 const SourceCode = require('../models/sourceCode');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
+const fs = require('fs');
+const path = require('path');
+const QRCode = require('qrcode'); 
+exports.getRegisterPage = (req, res) => {
+    res.render('auth/register', { 
+        titlePage: 'Register Akun', 
+        name: req.flash('name')[0] || '',
+        email: req.flash('email')[0] || '',
+        role: req.flash('role')[0] || ''
+    });
+};
+
+exports.getLoginPage = (req, res) => {
+    res.render('auth/login', { 
+        titlePage: 'Login', 
+        email: req.flash('email')[0] || '' 
+    });
+};
 
 exports.getDashboard = async (req, res) => {
     try {
@@ -33,7 +51,6 @@ exports.getDashboard = async (req, res) => {
             breadcrumbs: [{ name: 'Dashboard', active: true }]
         });
     } catch (error) {
-        console.error("Error getDashboard:", error);
         req.flash('error_msg', 'Gagal memuat dashboard.');
         res.redirect('/');
     }
@@ -41,24 +58,52 @@ exports.getDashboard = async (req, res) => {
 
 exports.getProfilePage = (req, res) => {
     res.render('user/profile', { 
-        titlePage: 'Edit Profile',
-        breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Edit Profile', active: true }]
+        titlePage: 'Edit Profile & Toko',
+        breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Edit Profile & Toko', active: true }]
     });
 };
 
 exports.updateProfileInfo = async (req, res) => {
-    const { name } = req.body;
+    const { name, storeName, bio, location, website } = req.body;
+    const updateData = {};
+
     if (!name || name.trim().length < 3) {
         req.flash('error_msg', 'Nama minimal 3 karakter.');
         return res.redirect('/dashboard/profile');
     }
+    updateData.name = name.trim();
+
+    if (req.user.role === 'seller' || req.user.role === 'admin') {
+        updateData.storeName = storeName ? storeName.trim() : req.user.name;
+        updateData.bio = bio ? bio.trim() : null;
+        updateData.location = location ? location.trim() : null;
+        updateData.website = website ? website.trim() : null;
+    }
+
+    if (req.file) {
+        const oldProfilePicture = req.user.profilePicture;
+        updateData.profilePicture = `/images/avatars/${req.file.filename}`;
+        
+        if (oldProfilePicture && oldProfilePicture !== '/images/default-avatar.png') {
+            const oldPicPath = path.join(__dirname, '..', 'public', oldProfilePicture);
+            fs.unlink(oldPicPath, (err) => {
+                if (err) console.error("Error deleting old profile picture:", err);
+            });
+        }
+    }
+
     try {
-        await User.findByIdAndUpdate(req.user._id, { name: name.trim() });
+        await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true });
         req.flash('success_msg', 'Informasi profile berhasil diperbarui.');
         res.redirect('/dashboard/profile');
     } catch (error) {
-        console.error("Error updateProfileInfo:", error);
-        req.flash('error_msg', 'Gagal memperbarui profile.');
+        if (req.file) { // Jika update DB gagal, hapus file baru yang terupload
+            const newPicPath = path.join(__dirname, '..', 'public', 'images', 'avatars', req.file.filename);
+            fs.unlink(newPicPath, (err) => {
+                if (err) console.error("Error deleting new profile picture after DB fail:", err);
+            });
+        }
+        req.flash('error_msg', `Gagal memperbarui profile: ${error.message}`);
         res.redirect('/dashboard/profile');
     }
 };
@@ -90,7 +135,6 @@ exports.changePassword = async (req, res) => {
         req.flash('success_msg', 'Password berhasil diubah.');
         res.redirect('/dashboard/profile');
     } catch (error) {
-        console.error("Error changePassword:", error);
         req.flash('error_msg', 'Gagal mengubah password.');
         res.redirect('/dashboard/profile');
     }
@@ -107,7 +151,6 @@ exports.updateQrisSettings = async (req, res) => {
         req.flash('success_msg', 'Pengaturan QRIS berhasil disimpan.');
         res.redirect('/dashboard/profile#qris-settings');
     } catch (error) {
-        console.error("Error updateQrisSettings:", error);
         req.flash('error_msg', 'Gagal menyimpan pengaturan QRIS.');
         res.redirect('/dashboard/profile#qris-settings');
     }
@@ -124,7 +167,6 @@ exports.getOrdersPage = async (req, res) => {
             breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Riwayat Pesanan', active: true }]
         });
     } catch (error) {
-        console.error("Error getOrdersPage:", error);
         req.flash('error_msg', 'Gagal memuat riwayat pesanan.');
         res.redirect('/dashboard');
     }
@@ -143,7 +185,6 @@ exports.getTransactionsPage = async (req, res) => {
             breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Riwayat Transaksi', active: true }]
         });
     } catch (error) {
-        console.error("Error getTransactionsPage:", error);
         req.flash('error_msg', 'Gagal memuat riwayat transaksi.');
         res.redirect('/dashboard');
     }
@@ -164,8 +205,36 @@ exports.getMySourceCodesPage = async (req, res) => {
             breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Source Code Saya', active: true }]
         });
     } catch (error) {
-        console.error("Error getMySourceCodesPage:", error);
         req.flash('error_msg', 'Gagal memuat daftar source code Anda.');
         res.redirect('/dashboard');
+    }
+};
+
+exports.getSellerStorePage = async (req, res) => {
+    try {
+        const seller = await User.findById(req.params.sellerId).select('-password -qrisBaseCode -qrisMerchantId -qrisApiKey');
+        if (!seller || (seller.role !== 'seller' && seller.role !== 'admin')) {
+            req.flash('error_msg', 'Seller tidak ditemukan.');
+            return res.redirect('/');
+        }
+
+        const sellerSc = await SourceCode.find({ seller: seller._id, status: 'approved' })
+            .sort({ createdAt: -1 })
+            .limit(12); // Batasi jumlah SC yang ditampilkan di halaman toko
+
+        const storeUrl = `${req.protocol}://${req.get('host')}/seller/${seller._id}`;
+        const qrCodeDataUrl = await QRCode.toDataURL(storeUrl, { errorCorrectionLevel: 'H', margin: 2, width: 200 });
+
+        res.render('user/seller_store', {
+            titlePage: `Toko ${seller.storeName || seller.name}`,
+            seller,
+            sellerSc,
+            qrCodeDataUrl,
+            storeUrl,
+            breadcrumbs: [{ name: 'Marketplace', url: '/' }, { name: `Toko ${seller.storeName || seller.name}`, active: true }]
+        });
+    } catch (error) {
+        req.flash('error_msg', 'Gagal memuat halaman toko seller.');
+        res.redirect('/');
     }
 };

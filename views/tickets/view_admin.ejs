@@ -1,0 +1,119 @@
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
+
+<div class="row">
+    <div class="col-md-8">
+        <h1><i class="fas fa-ticket-alt me-2"></i><%= ticket.subject %></h1>
+        <p class="text-muted">Tiket ID: #<%= ticket._id.toString().slice(-6).toUpperCase() %>
+            <span class="ms-2 badge 
+                <%= ticket.status === 'open' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : '' %>
+                <%= ticket.status === 'pending_reply' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : '' %>
+                <%= ticket.status === 'resolved' ? 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' : '' %>
+                <%= ticket.status === 'closed' ? 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' : '' %>
+            ">
+                Status: <%= ticket.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %>
+            </span>
+        </p>
+    </div>
+</div>
+<hr>
+
+<div class="row">
+    <div class="col-md-3 order-md-2 mb-4">
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 small text-muted">Detail Tiket</h5>
+            </div>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item"><strong>User:</strong> <%= ticket.user.name %> (<%= ticket.user.email %>)</li>
+                <li class="list-group-item"><strong>Dibuat:</strong> <%= new Date(ticket.createdAt).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) %></li>
+                <li class="list-group-item"><strong>Update Terakhir:</strong> <%= new Date(ticket.updatedAt).toLocaleString('id-ID', {dateStyle:'medium', timeStyle:'short'}) %></li>
+            </ul>
+        </div>
+
+        <div class="card shadow-sm">
+             <div class="card-header bg-light">
+                <h5 class="mb-0 small text-muted">Aksi Admin</h5>
+            </div>
+            <div class="card-body small">
+                <form action="/api/tickets/admin/<%= ticket._id %>/status?_method=POST" method="POST" class="mb-3 needs-loading">
+                    <div class="mb-2">
+                        <label for="status" class="form-label fw-semibold">Ubah Status:</label>
+                        <select name="status" id="status" class="form-select form-select-sm">
+                            <option value="open" <%= ticket.status === 'open' ? 'selected' : '' %>>Terbuka</option>
+                            <option value="pending_reply" <%= ticket.status === 'pending_reply' ? 'selected' : '' %>>Menunggu Balasan</option>
+                            <option value="resolved" <%= ticket.status === 'resolved' ? 'selected' : '' %>>Selesai</option>
+                            <option value="closed" <%= ticket.status === 'closed' ? 'selected' : '' %>>Ditutup</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label for="priority" class="form-label fw-semibold">Ubah Prioritas:</label>
+                        <select name="priority" id="priority" class="form-select form-select-sm">
+                            <option value="low" <%= ticket.priority === 'low' ? 'selected' : '' %>>Rendah</option>
+                            <option value="medium" <%= ticket.priority === 'medium' ? 'selected' : '' %>>Medium</option>
+                            <option value="high" <%= ticket.priority === 'high' ? 'selected' : '' %>>Tinggi</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-info w-100"><i class="fas fa-save me-1"></i>Update Status/Prioritas</button>
+                </form>
+                <hr>
+                <form action="/api/tickets/admin/<%= ticket._id %>/assign?_method=POST" method="POST" class="needs-loading">
+                     <div class="mb-2">
+                        <label for="assignToUserId" class="form-label fw-semibold">Assign Ke:</label>
+                        <select name="assignToUserId" id="assignToUserId" class="form-select form-select-sm">
+                            <option value="unassign">-- Batalkan Assignment --</option>
+                            <% if (adminsAndSupport && adminsAndSupport.length > 0) { %>
+                                <% adminsAndSupport.forEach(admin => { %>
+                                    <option value="<%= admin._id %>" <%= (ticket.assignedTo && ticket.assignedTo._id.toString() === admin._id.toString()) ? 'selected' : '' %>>
+                                        <%= admin.name %>
+                                    </option>
+                                <% }) %>
+                            <% } %>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100"><i class="fas fa-user-check me-1"></i>Assign Tiket</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9 order-md-1">
+        <div class="messages-container mb-4" style="max-height: 500px; overflow-y: auto; border:1px solid #eee; padding:15px; border-radius:var(--border-radius); background-color: #fdfdfd;">
+            <% ticket.messages.forEach(msg => { %>
+                <div class="message mb-3 <%= msg.sender._id.toString() === currentUser._id.toString() ? 'sent' : 'received' %>">
+                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'bg-success text-white ms-auto' : 'bg-light border' %>" style="max-width: 80%;">
+                        <p class="mb-1"><%- msg.message.replace(/\n/g, '<br>') %></p>
+                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'text-light-emphasis' : 'text-muted' %>">
+                            <img src="<%= msg.sender.profilePicture %>" alt="<%= msg.sender.name %>" class="rounded-circle me-1" width="20" height="20">
+                            <strong><%= msg.sender._id.toString() === currentUser._id.toString() ? 'Anda (Admin)' : msg.sender.name %></strong> 
+                            - <%= new Date(msg.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) %>
+                        </small>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <% if (ticket.status !== 'closed' && ticket.status !== 'resolved') { %>
+        <div class="reply-form mt-3 pt-3 border-top">
+            <h5><i class="fas fa-reply me-1"></i> Balas Sebagai Admin</h5>
+            <form action="/api/tickets/admin/<%= ticket._id %>/reply" method="POST" class="needs-loading needs-validation" novalidate>
+                <div class="mb-3">
+                    <label for="message" class="form-label visually-hidden">Pesan Balasan Anda</label>
+                    <textarea class="form-control" id="message" name="message" rows="4" placeholder="Ketik balasan Anda di sini..." minlength="5" required></textarea>
+                     <div class="invalid-feedback">Balasan minimal 5 karakter.</div>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
+            </form>
+        </div>
+        <% } else { %>
+            <div class="alert alert-secondary text-center">
+                <i class="fas fa-lock me-1"></i> Tiket ini telah ditutup atau diselesaikan.
+            </div>
+        <% } %>
+    </div>
+</div>
+<style>
+    .message.sent .message-bubble { float: right; clear: both; }
+    .message.received .message-bubble { float: left; clear: both; }
+    .message-bubble { display: inline-block; }
+    .message:after { content: ""; display: table; clear: both; }
+</style>

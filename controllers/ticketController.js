@@ -4,17 +4,20 @@ const Order = require('../models/order');
 const SourceCode = require('../models/sourceCode');
 const mongoose = require('mongoose');
 
+
 exports.listUserTickets = async (req, res) => {
     try {
         const tickets = await Ticket.find({ user: req.user._id })
-            .sort({ updatedAt: -1, createdAt: -1 });
-        res.render('tickets/list', { 
-            titlePage: 'Tiket Bantuan Saya', 
+            .sort({ updatedAt: -1 })
+            .populate('assignedTo', 'name')
+            .populate('sc', 'title')
+            .populate('order', 'scTitleAtPurchase');
+        res.render('tickets/list', {
+            titlePage: 'Tiket Bantuan Saya',
             tickets,
             breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Tiket Bantuan Saya', active: true }]
         });
     } catch (error) {
-        console.error("Error listing user tickets:", error);
         req.flash('error_msg', 'Gagal memuat daftar tiket.');
         res.redirect('/dashboard');
     }
@@ -22,67 +25,91 @@ exports.listUserTickets = async (req, res) => {
 
 exports.getNewTicketForm = async (req, res) => {
     try {
+        const { receiver, receiverName, scId, scTitle, orderId: queryOrderId } = req.query;
         const userOrders = await Order.find({ user: req.user._id, paymentStatus: 'completed' })
-            .populate('sourceCode', 'title')
-            .sort({ createdAt: -1 });
+            .populate({path: 'sourceCode', select: 'title _id'})
+            .select('scTitleAtPurchase createdAt sourceCode');
         
-        const userSCs = await SourceCode.find({ seller: req.user._id })
-             .select('title')
-             .sort({title: 1});
+        let prefilledSubject = "";
+        if (scTitle) {
+            prefilledSubject = `Pertanyaan tentang SC: ${scTitle}`;
+        } else if (queryOrderId) {
+            const orderForSubject = await Order.findById(queryOrderId).select('scTitleAtPurchase midtransOrderId');
+            prefilledSubject = `Pertanyaan tentang Pesanan ${orderForSubject ? (orderForSubject.scTitleAtPurchase || `ID ${orderForSubject.midtransOrderId || queryOrderId.slice(-5)}`) : `ID ${queryOrderId.slice(-5)}`}`;
+        }
 
-        res.render('tickets/new', { 
-            titlePage: 'Buat Tiket Bantuan Baru',
+        res.render('tickets/new', {
+            titlePage: receiverName ? `Kirim Pesan ke ${receiverName}` : 'Buat Tiket Bantuan Baru',
             userOrders,
-            userSCs,
-            subject: req.flash('form_subject')[0] || '',
+            receiverId: receiver,
+            receiverName: receiverName,
+            relatedScId: scId,
+            relatedScTitle: scTitle,
+            relatedOrderId: queryOrderId,
+            prefilledSubject,
+            subject: req.flash('form_subject')[0] || prefilledSubject,
             message: req.flash('form_message')[0] || '',
-            order: req.flash('form_order')[0] || '',
-            sc: req.flash('form_sc')[0] || '',
+            orderId: req.flash('form_orderId')[0] || queryOrderId || '',
+            scIdFlash: req.flash('form_scId')[0] || scId || '',
             priority: req.flash('form_priority')[0] || 'medium',
-            breadcrumbs: [{ name: 'Dashboard', url: '/dashboard' }, { name: 'Tiket Bantuan', url: '/api/tickets' }, { name: 'Buat Tiket Baru', active: true }]
+            breadcrumbs: [
+                { name: 'Dashboard', url: '/dashboard' },
+                { name: 'Tiket Bantuan Saya', url: '/api/tickets' },
+                { name: 'Buat Tiket Baru', active: true }
+            ]
         });
     } catch (error) {
-        console.error("Error getting new ticket form:", error);
         req.flash('error_msg', 'Gagal memuat form tiket baru.');
         res.redirect('/api/tickets');
     }
 };
 
 exports.createTicket = async (req, res) => {
-    const { subject, message, order, sc, priority } = req.body;
+    const { subject, message, orderId, scId, priority, receiverId, receiverName, relatedScId, relatedScTitle, relatedOrderId } = req.body;
     let errors = [];
-    if (!subject || !message) {
-        errors.push({ msg: 'Subjek dan pesan wajib diisi.' });
-    }
+
+    if (!subject || !message) errors.push({ msg: 'Subjek dan Pesan wajib diisi.' });
     if (subject && subject.length < 5) errors.push({ msg: 'Subjek minimal 5 karakter.' });
     if (message && message.length < 10) errors.push({ msg: 'Pesan minimal 10 karakter.' });
-    if (!['low', 'medium', 'high'].includes(priority)) errors.push({ msg: 'Prioritas tidak valid.' });
 
     if (errors.length > 0) {
         req.flash('errors', errors);
         req.flash('form_subject', subject);
         req.flash('form_message', message);
-        req.flash('form_order', order);
-        req.flash('form_sc', sc);
+        req.flash('form_orderId', orderId);
+        req.flash('form_scId', scId);
         req.flash('form_priority', priority);
-        return res.redirect('/api/tickets/new');
+        
+        let redirectQuery = "";
+        if (receiverId) redirectQuery += `?receiver=${receiverId}`;
+        if (receiverName) redirectQuery += `${redirectQuery ? '&' : '?'}receiverName=${encodeURIComponent(receiverName)}`;
+        if (relatedScId) redirectQuery += `${redirectQuery ? '&' : '?'}scId=${relatedScId}`;
+        if (relatedScTitle) redirectQuery += `${redirectQuery ? '&' : '?'}scTitle=${encodeURIComponent(relatedScTitle)}`;
+        if (relatedOrderId) redirectQuery += `${redirectQuery ? '&' : '?'}orderId=${relatedOrderId}`;
+        return res.redirect(`/api/tickets/new${redirectQuery}`);
     }
 
     try {
-        const newTicket = new Ticket({
+        const ticketData = {
             user: req.user._id,
             subject,
-            order: order || null,
-            sc: sc || null,
-            priority,
-            messages: [{ sender: req.user._id, message }]
-        });
+            priority: priority || 'medium',
+            messages: [{ sender: req.user._id, message }],
+        };
+        if (orderId && mongoose.Types.ObjectId.isValid(orderId)) ticketData.order = orderId;
+        if (scId && mongoose.Types.ObjectId.isValid(scId)) ticketData.sc = scId;
+        if (receiverId && mongoose.Types.ObjectId.isValid(receiverId)) {
+            ticketData.assignedTo = receiverId; 
+            ticketData.status = 'pending_reply'; // Langsung menunggu balasan dari seller/admin
+        }
+
+
+        const newTicket = new Ticket(ticketData);
         await newTicket.save();
-        req.flash('success_msg', 'Tiket bantuan berhasil dibuat.');
+        req.flash('success_msg', 'Tiket berhasil dibuat. Anda akan segera mendapatkan balasan.');
         res.redirect(`/api/tickets/${newTicket._id}`);
     } catch (error) {
-        console.error("Error creating ticket:", error);
-        req.flash('error_msg', 'Gagal membuat tiket bantuan.');
+        req.flash('error_msg', `Gagal membuat tiket: ${error.message}`);
         res.redirect('/api/tickets/new');
     }
 };
@@ -91,102 +118,117 @@ exports.viewTicket = async (req, res) => {
     try {
         const ticket = await Ticket.findById(req.params.id)
             .populate('user', 'name email')
-            .populate('order', 'scTitleAtPurchase midtransOrderId')
-            .populate('sc', 'title')
-            .populate('messages.sender', 'name role')
-            .populate('assignedTo', 'name');
+            .populate({ path: 'order', populate: { path: 'sourceCode', select: 'title _id' } })
+            .populate({ path: 'sc', select: 'title _id', populate: { path: 'seller', select: 'name _id storeName' } })
+            .populate('messages.sender', 'name role profilePicture')
+            .populate('assignedTo', 'name role');
 
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets');
         }
-        if (ticket.user._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+        
+        const isOwner = ticket.user._id.toString() === req.user._id.toString();
+        const isAdminOrSupport = req.user.role === 'admin'; 
+        const isAssignedTo = ticket.assignedTo && ticket.assignedTo._id.toString() === req.user._id.toString();
+        const canView = isOwner || isAdminOrSupport || isAssignedTo;
+
+        if (!canView) {
             req.flash('error_msg', 'Anda tidak berhak mengakses tiket ini.');
             return res.redirect('/api/tickets');
         }
         
         const breadcrumbs = [
-            { name: 'Dashboard', url: '/dashboard' }, 
-            { name: 'Tiket Bantuan', url: '/api/tickets' }, 
+            { name: 'Dashboard', url: '/dashboard' },
+            { name: 'Tiket Bantuan Saya', url: '/api/tickets' },
             { name: `Tiket #${ticket._id.toString().slice(-6).toUpperCase()}`, active: true }
         ];
-        if (req.user.role === 'admin' && ticket.user._id.toString() !== req.user._id.toString()) {
-            breadcrumbs.splice(1,1, { name: 'Semua Tiket (Admin)', url: '/api/tickets/admin/all' });
-        }
-
-
+        
         res.render('tickets/view', { 
             titlePage: `Detail Tiket: ${ticket.subject}`, 
             ticket,
             breadcrumbs,
-            reply_message: req.flash('form_reply_message')[0] || '',
+            isOwner,
+            isAdminOrSupport
         });
     } catch (error) {
-        console.error("Error viewing ticket:", error);
         req.flash('error_msg', 'Gagal memuat detail tiket.');
         res.redirect('/api/tickets');
     }
 };
 
 exports.replyToTicket = async (req, res) => {
-    const { reply_message } = req.body;
-    if (!reply_message || reply_message.trim().length < 5) {
-        req.flash('error_msg', 'Pesan balasan minimal 5 karakter.');
-        req.flash('form_reply_message', reply_message);
+    const { message } = req.body;
+    if (!message || message.trim().length < 5) {
+        req.flash('error_msg', 'Balasan minimal 5 karakter.');
         return res.redirect(`/api/tickets/${req.params.id}`);
     }
     try {
-        const ticket = await Ticket.findById(req.params.id);
+        const ticket = await Ticket.findById(req.params.id).populate('user', '_id').populate('assignedTo', '_id');
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets');
         }
-        if (ticket.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-            req.flash('error_msg', 'Anda tidak berhak membalas tiket ini.');
-            return res.redirect('/api/tickets');
-        }
-        if (ticket.status === 'closed' || ticket.status === 'resolved') {
-            req.flash('error_msg', 'Tidak dapat membalas tiket yang sudah ditutup atau diselesaikan.');
+
+        const isOwner = ticket.user._id.toString() === req.user._id.toString();
+        const isAdminOrSupport = req.user.role === 'admin';
+        const isAssignedTo = ticket.assignedTo && ticket.assignedTo._id.toString() === req.user._id.toString();
+        const canReply = isOwner || isAdminOrSupport || isAssignedTo;
+
+        if (!canReply || ticket.status === 'closed' || ticket.status === 'resolved') {
+            req.flash('error_msg', 'Tidak dapat membalas tiket ini atau tiket sudah ditutup/selesai.');
             return res.redirect(`/api/tickets/${req.params.id}`);
         }
 
-        ticket.messages.push({ sender: req.user._id, message: reply_message });
-        if (ticket.user.toString() === req.user._id.toString()) { // User replies
-            ticket.status = 'pending_reply'; // Awaiting admin/support reply
-        } else { // Admin/support replies
-            ticket.status = 'open'; // Or could be 'pending_customer_reply' if needed
+        ticket.messages.push({ sender: req.user._id, message: message.trim() });
+        
+        if (isOwner) {
+            ticket.status = ticket.assignedTo ? 'pending_reply' : 'open';
+        } else { 
+            ticket.status = 'open';
         }
         ticket.updatedAt = Date.now();
         await ticket.save();
+
         req.flash('success_msg', 'Balasan berhasil dikirim.');
         res.redirect(`/api/tickets/${req.params.id}`);
     } catch (error) {
-        console.error("Error replying to ticket:", error);
-        req.flash('error_msg', 'Gagal mengirim balasan.');
+        req.flash('error_msg', `Gagal mengirim balasan: ${error.message}`);
         res.redirect(`/api/tickets/${req.params.id}`);
     }
 };
 
 exports.closeTicket = async (req, res) => {
     try {
-        const ticket = await Ticket.findById(req.params.id);
+        const ticket = await Ticket.findById(req.params.id).populate('user', '_id');
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets');
         }
-        if (ticket.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+
+        const canClose = ticket.user._id.toString() === req.user._id.toString() || req.user.role === 'admin';
+        if (!canClose) {
             req.flash('error_msg', 'Anda tidak berhak menutup tiket ini.');
-            return res.redirect('/api/tickets');
+            return res.redirect(`/api/tickets/${req.params.id}`);
         }
         
+        if (ticket.status === 'closed') {
+            req.flash('info_msg', 'Tiket ini sudah ditutup sebelumnya.');
+            return res.redirect(`/api/tickets/${req.params.id}`);
+        }
+
         ticket.status = 'closed';
         ticket.updatedAt = Date.now();
+        ticket.messages.push({ 
+            sender: req.user._id, 
+            message: `Tiket ditutup oleh ${req.user.name}.`
+        });
         await ticket.save();
+
         req.flash('success_msg', 'Tiket berhasil ditutup.');
         res.redirect(`/api/tickets/${req.params.id}`);
     } catch (error) {
-        console.error("Error closing ticket:", error);
-        req.flash('error_msg', 'Gagal menutup tiket.');
+        req.flash('error_msg', `Gagal menutup tiket: ${error.message}`);
         res.redirect(`/api/tickets/${req.params.id}`);
     }
 };
@@ -194,32 +236,62 @@ exports.closeTicket = async (req, res) => {
 
 exports.listAllTicketsAdmin = async (req, res) => {
     try {
-        const statusFilter = req.query.status || '';
+        const { status = 'open', priority = 'all', search = '', sort = 'updatedAt_desc', page = 1, limit = 15 } = req.query;
         let query = {};
-        if (statusFilter && ['open', 'pending_reply', 'resolved', 'closed'].includes(statusFilter)) {
-            query.status = statusFilter;
+        
+        if (status && status !== 'all') query.status = status;
+        if (priority && priority !== 'all') query.priority = priority;
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            const usersWithName = await User.find({ name: searchRegex }).select('_id');
+            const userIds = usersWithName.map(u => u._id);
+            query.$or = [
+                { subject: searchRegex },
+                { 'messages.message': searchRegex },
+                { user: { $in: userIds } }
+            ];
         }
+
+        let sortOption = {};
+        if(sort === 'updatedAt_desc') sortOption.updatedAt = -1;
+        else if (sort === 'updatedAt_asc') sortOption.updatedAt = 1;
+        else if (sort === 'createdAt_desc') sortOption.createdAt = -1;
+        else if (sort === 'createdAt_asc') sortOption.createdAt = 1;
+        else sortOption.updatedAt = -1;
+
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
 
         const tickets = await Ticket.find(query)
             .populate('user', 'name email')
             .populate('assignedTo', 'name')
-            .sort({ status: 1, updatedAt: -1 });
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limitNum);
         
-        const breadcrumbs = [
-            { name: 'Admin Dashboard', url: '/admin/dashboard' }, // Assuming admin has a dashboard
-            { name: 'Semua Tiket Bantuan', active: true }
-        ];
-
-        res.render('tickets/admin_list', { 
-            titlePage: 'Manajemen Tiket Bantuan', 
+        const totalTickets = await Ticket.countDocuments(query);
+        const totalPages = Math.ceil(totalTickets / limitNum);
+            
+        res.render('tickets/admin_list', {
+            titlePage: 'Manajemen Tiket Bantuan',
             tickets,
-            breadcrumbs,
-            currentStatusFilter: statusFilter
+            currentStatus: status,
+            currentPriority: priority,
+            currentSearch: search,
+            currentSort: sort,
+            currentPage: pageNum,
+            totalPages,
+            limit: limitNum,
+            totalTickets,
+            breadcrumbs: [
+                { name: 'Dashboard Admin', url: '/admin/dashboard' },
+                { name: 'Manajemen Tiket', active: true }
+            ]
         });
     } catch (error) {
-        console.error("Error listing all tickets for admin:", error);
         req.flash('error_msg', 'Gagal memuat daftar semua tiket.');
-        res.redirect('/admin/dashboard'); // Or admin's main page
+        res.redirect('/admin/dashboard');
     }
 };
 
@@ -227,43 +299,42 @@ exports.viewTicketAdmin = async (req, res) => {
     try {
         const ticket = await Ticket.findById(req.params.id)
             .populate('user', 'name email')
-            .populate({ path: 'order', populate: { path: 'sourceCode', select: 'title' } })
-            .populate('sc', 'title')
-            .populate('messages.sender', 'name role')
-            .populate('assignedTo', 'name');
+            .populate({ path: 'order', populate: { path: 'sourceCode', select: 'title _id' }})
+            .populate({ path: 'sc', select: 'title _id', populate: { path: 'seller', select: 'name _id storeName' } })
+            .populate('messages.sender', 'name role profilePicture')
+            .populate('assignedTo', 'name role');
 
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets/admin/all');
         }
-
-        const supportStaff = await User.find({ role: { $in: ['admin', 'support'] } }).select('name _id'); // Assuming a 'support' role exists
         
+        const adminsAndSupport = await User.find({ role: { $in: ['admin', 'support_staff']}}).select('name _id'); // Ganti 'support_staff' jika role Anda berbeda
+
         const breadcrumbs = [
-            { name: 'Admin Dashboard', url: '/admin/dashboard' },
-            { name: 'Semua Tiket Bantuan', url: '/api/tickets/admin/all' }, 
-            { name: `Detail Tiket #${ticket._id.toString().slice(-6).toUpperCase()}`, active: true }
+            { name: 'Dashboard Admin', url: '/admin/dashboard' },
+            { name: 'Manajemen Tiket', url: '/api/tickets/admin/all' },
+            { name: `Tiket #${ticket._id.toString().slice(-6).toUpperCase()}`, active: true }
         ];
 
-        res.render('tickets/admin_view', { 
-            titlePage: `Admin: Detail Tiket - ${ticket.subject}`, 
+        res.render('tickets/view_admin', {
+            titlePage: `Detail Tiket (Admin): ${ticket.subject}`, 
             ticket,
-            supportStaff,
+            adminsAndSupport,
             breadcrumbs,
-            reply_message: req.flash('form_reply_message')[0] || ''
+            isAdminView: true
         });
     } catch (error) {
-        console.error("Error admin viewing ticket:", error);
-        req.flash('error_msg', 'Gagal memuat detail tiket untuk admin.');
+        req.flash('error_msg', 'Gagal memuat detail tiket admin.');
         res.redirect('/api/tickets/admin/all');
     }
 };
 
+
 exports.replyToTicketAdmin = async (req, res) => {
-    const { reply_message } = req.body;
-    if (!reply_message || reply_message.trim().length < 5) {
-        req.flash('error_msg', 'Pesan balasan minimal 5 karakter.');
-         req.flash('form_reply_message', reply_message);
+     const { message } = req.body;
+    if (!message || message.trim().length < 5) {
+        req.flash('error_msg', 'Balasan minimal 5 karakter.');
         return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     }
     try {
@@ -272,80 +343,105 @@ exports.replyToTicketAdmin = async (req, res) => {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets/admin/all');
         }
-         if (ticket.status === 'closed' || ticket.status === 'resolved') {
-            req.flash('error_msg', 'Tidak dapat membalas tiket yang sudah ditutup atau diselesaikan.');
+
+        if (ticket.status === 'closed' || ticket.status === 'resolved') {
+            req.flash('error_msg', 'Tidak dapat membalas tiket yang sudah ditutup/selesai.');
             return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
         }
 
-        ticket.messages.push({ sender: req.user._id, message: reply_message });
+        ticket.messages.push({ sender: req.user._id, message: message.trim() });
         ticket.status = 'open';
         ticket.updatedAt = Date.now();
+        if (!ticket.assignedTo) {
+            ticket.assignedTo = req.user._id;
+        }
         await ticket.save();
+
         req.flash('success_msg', 'Balasan berhasil dikirim.');
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     } catch (error) {
-        console.error("Error admin replying to ticket:", error);
-        req.flash('error_msg', 'Gagal mengirim balasan.');
+        req.flash('error_msg', `Gagal mengirim balasan: ${error.message}`);
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     }
 };
 
-
 exports.updateTicketStatusAdmin = async (req, res) => {
-    const { status } = req.body;
-    if (!status || !['open', 'pending_reply', 'resolved', 'closed'].includes(status)) {
-        req.flash('error_msg', 'Status tiket tidak valid.');
-        return res.redirect('back');
-    }
+    const { status, priority } = req.body;
     try {
         const ticket = await Ticket.findById(req.params.id);
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets/admin/all');
         }
-        ticket.status = status;
+        
+        let messageLog = "";
+        let statusChanged = false;
+        let priorityChanged = false;
+
+        if (status && ticket.status !== status) {
+            messageLog += `Status tiket diubah dari '${ticket.status}' menjadi '${status}'`;
+            ticket.status = status;
+            statusChanged = true;
+        }
+        if (priority && ticket.priority !== priority) {
+            if(statusChanged) messageLog += `, dan prioritas diubah`; else messageLog += `Prioritas tiket diubah`;
+            messageLog += ` dari '${ticket.priority}' menjadi '${priority}'`;
+            ticket.priority = priority;
+            priorityChanged = true;
+        }
+        
+        if(!statusChanged && !priorityChanged) {
+            req.flash('info_msg', 'Tidak ada perubahan status atau prioritas.');
+            return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
+        }
+
+        messageLog += ` oleh ${req.user.name}.`;
         ticket.updatedAt = Date.now();
+        ticket.messages.push({ sender: req.user._id, message: messageLog });
+        
         await ticket.save();
-        req.flash('success_msg', `Status tiket berhasil diubah menjadi ${status}.`);
+        req.flash('success_msg', 'Status/Prioritas tiket berhasil diperbarui.');
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     } catch (error) {
-        console.error("Error updating ticket status by admin:", error);
-        req.flash('error_msg', 'Gagal mengubah status tiket.');
+        req.flash('error_msg', `Gagal memperbarui status tiket: ${error.message}`);
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     }
 };
 
 exports.assignTicketAdmin = async (req, res) => {
-    const { assignedTo } = req.body; // User ID of admin/support staff
+    const { assignToUserId } = req.body;
     try {
         const ticket = await Ticket.findById(req.params.id);
         if (!ticket) {
             req.flash('error_msg', 'Tiket tidak ditemukan.');
             return res.redirect('/api/tickets/admin/all');
         }
-        if (assignedTo && !mongoose.Types.ObjectId.isValid(assignedTo) && assignedTo !== "unassign") {
-            req.flash('error_msg', 'ID staff tidak valid.');
-             return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
+        
+        if (!assignToUserId || assignToUserId === "unassign") { // Opsi untuk unassign
+            const oldAssigned = ticket.assignedTo ? (await User.findById(ticket.assignedTo).select('name')).name : "Tidak ada";
+            ticket.assignedTo = null;
+            ticket.updatedAt = Date.now();
+            ticket.messages.push({ sender: req.user._id, message: `Assignment tiket ke ${oldAssigned} dibatalkan oleh ${req.user.name}.` });
+            await ticket.save();
+            req.flash('success_msg', `Assignment tiket berhasil dibatalkan.`);
+            return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
         }
 
-        if (assignedTo === "unassign") {
-            ticket.assignedTo = null;
-        } else {
-            const staffUser = await User.findById(assignedTo);
-            if (!staffUser || (staffUser.role !== 'admin' && staffUser.role !== 'support')) { // Assuming 'support' role
-                 req.flash('error_msg', 'Staff tidak ditemukan atau bukan admin/support.');
-                 return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
-            }
-            ticket.assignedTo = assignedTo;
+        const assignToUser = await User.findById(assignToUserId);
+        if (!assignToUser || (assignToUser.role !== 'admin' && assignToUser.role !== 'support_staff')) { // Sesuaikan 'support_staff'
+             req.flash('error_msg', 'User yang akan di-assign tidak valid atau bukan tim support.');
+            return res.redirect(`/api/tickets/admin/view/${req.params.id}`);
         }
-        
+
+        ticket.assignedTo = assignToUserId;
         ticket.updatedAt = Date.now();
+        ticket.messages.push({ sender: req.user._id, message: `Tiket di-assign ke ${assignToUser.name} oleh ${req.user.name}.` });
         await ticket.save();
-        req.flash('success_msg', `Tiket berhasil ${assignedTo === "unassign" ? "dilepas" : "ditugaskan"}.`);
+
+        req.flash('success_msg', `Tiket berhasil di-assign ke ${assignToUser.name}.`);
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     } catch (error) {
-        console.error("Error assigning ticket by admin:", error);
-        req.flash('error_msg', 'Gagal menugaskan tiket.');
+        req.flash('error_msg', `Gagal meng-assign tiket: ${error.message}`);
         res.redirect(`/api/tickets/admin/view/${req.params.id}`);
     }
 };

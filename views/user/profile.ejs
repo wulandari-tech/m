@@ -1,5 +1,7 @@
 <%# views/user/profile.ejs %>
-<h1><i class="fas fa-user-cog"></i> Pengaturan Profile</h1>
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
+
+<h1><i class="fas fa-user-cog me-2"></i>Pengaturan Profile & Toko</h1>
 <hr>
 
 <div class="row">
@@ -9,7 +11,12 @@
                 <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Informasi Dasar</h5>
             </div>
             <div class="card-body">
-                <form action="/api/user/profile/update" method="POST"> <%# Route needs to be defined in userRoutes.js and handled by userController.js %>
+                <form action="/api/user/profile/update" method="POST" enctype="multipart/form-data" class="needs-loading">
+                    <div class="mb-3 text-center">
+                        <img src="<%= currentUser.profilePicture %>" alt="Foto Profil <%= currentUser.name %>" id="profilePicturePreview" class="img-thumbnail rounded-circle mb-2" style="width: 150px; height: 150px; object-fit: cover;">
+                        <input type="file" name="profilePictureFile" id="profilePictureFile" class="form-control form-control-sm" accept="image/*">
+                        <small class="form-text text-muted">Ganti foto profil (opsional, maks 2MB).</small>
+                    </div>
                     <div class="mb-3">
                         <label for="name" class="form-label">Nama Lengkap</label>
                         <input type="text" name="name" id="name" class="form-control" value="<%= currentUser.name %>" required>
@@ -19,7 +26,28 @@
                         <input type="email" name="email" id="email" class="form-control" value="<%= currentUser.email %>" readonly disabled>
                         <small class="form-text text-muted">Email tidak dapat diubah.</small>
                     </div>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan Nama</button>
+
+                    <% if (currentUser.role === 'seller' || currentUser.role === 'admin') { %>
+                        <h5 class="mt-4 mb-3 border-bottom pb-2"><i class="fas fa-store me-2"></i>Informasi Toko Seller</h5>
+                        <div class="mb-3">
+                            <label for="storeName" class="form-label">Nama Toko</label>
+                            <input type="text" name="storeName" id="storeName" class="form-control" value="<%= currentUser.storeName || currentUser.name %>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="bio" class="form-label">Bio Singkat Toko (Maks 250 karakter)</label>
+                            <textarea name="bio" id="bio" class="form-control" rows="3" maxlength="250"><%= currentUser.bio || '' %></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Lokasi (Kota, Negara)</label>
+                            <input type="text" name="location" id="location" class="form-control" value="<%= currentUser.location || '' %>">
+                        </div>
+                        <div class="mb-3">
+                            <label for="website" class="form-label">Website Toko/Personal (URL)</label>
+                            <input type="url" name="website" id="website" class="form-control" placeholder="https://contoh.com" value="<%= currentUser.website || '' %>">
+                        </div>
+                    <% } %>
+
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan Perubahan Profile</button>
                 </form>
             </div>
         </div>
@@ -29,7 +57,7 @@
                  <h5 class="mb-0"><i class="fas fa-key me-2"></i>Ubah Password</h5>
             </div>
             <div class="card-body">
-                <form action="/api/user/profile/change-password" method="POST"> <%# Route needs to be defined and handled %>
+                <form action="/api/user/profile/change-password" method="POST" class="needs-loading">
                     <div class="mb-3">
                         <label for="current_password" class="form-label">Password Saat Ini</label>
                         <input type="password" name="current_password" id="current_password" class="form-control" required>
@@ -42,7 +70,7 @@
                         <label for="confirm_new_password" class="form-label">Konfirmasi Password Baru</label>
                         <input type="password" name="confirm_new_password" id="confirm_new_password" class="form-control" required>
                     </div>
-                    <button type="submit" class="btn btn-warning"><i class="fas fa-sync-alt me-1"></i> Ubah Password</button>
+                    <button type="submit" class="btn btn-warning text-dark"><i class="fas fa-sync-alt me-1"></i> Ubah Password</button>
                 </form>
             </div>
         </div>
@@ -56,11 +84,11 @@
             </div>
             <div class="card-body">
                 <p class="text-muted small">Konfigurasi ini akan digunakan untuk menghasilkan QRIS dinamis saat pembeli memilih metode pembayaran QRIS untuk source code yang Anda jual.</p>
-                <form action="/api/user/profile/qris-settings" method="POST"> <%# Route needs to be defined and handled %>
+                <form action="/api/user/profile/qris-settings" method="POST" class="needs-loading">
                     <div class="mb-3">
                         <label for="qrisBaseCode" class="form-label">Kode Dasar QRIS Statis Anda</label>
-                        <textarea name="qrisBaseCode" id="qrisBaseCode" class="form-control" rows="4" placeholder="Contoh: 0002010102112658001...5802ID...6000"><%= currentUser.qrisBaseCode || '' %></textarea>
-                        <small class="form-text text-muted">Ini adalah string QRIS statis Anda yang akan dimodifikasi untuk jumlah dinamis. <br><strong>Penting:</strong> Pastikan strukturnya benar dan tidak menyertakan CRC di akhir jika ingin sistem menghasilkan CRC dinamis.</small>
+                        <textarea name="qrisBaseCode" id="qrisBaseCode" class="form-control" rows="4" placeholder="Contoh: 00020101021126...5802ID...6000"><%= currentUser.qrisBaseCode || '' %></textarea>
+                        <small class="form-text text-muted">String QRIS statis Anda (tanpa CRC jika ingin dinamiskan sistem).</small>
                     </div>
                      <div class="mb-3">
                         <label for="qrisMerchantId" class="form-label">Merchant ID Okeconnect (Opsional)</label>
@@ -79,3 +107,21 @@
     </div>
     <% } %>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profilePictureInput = document.getElementById('profilePictureFile');
+    const profilePicturePreview = document.getElementById('profilePicturePreview');
+    if (profilePictureInput && profilePicturePreview) {
+        profilePictureInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profilePicturePreview.src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>

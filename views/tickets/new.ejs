@@ -1,0 +1,90 @@
+<%# views/tickets/new.ejs %>
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
+
+<h1><i class="fas fa-plus-circle me-2"></i><%= receiverName ? `Kirim Pesan ke ${receiverName}` : 'Buat Tiket Bantuan Baru' %></h1>
+<hr>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="/api/tickets" method="POST" class="needs-loading needs-validation" novalidate>
+                    <% if (receiverId) { %>
+                        <input type="hidden" name="receiverId" value="<%= receiverId %>">
+                        <input type="hidden" name="receiverName" value="<%= receiverName %>">
+                    <% } %>
+                    <% if (relatedScId) { %>
+                        <input type="hidden" name="scId" value="<%= relatedScId %>">
+                        <input type="hidden" name="relatedScId" value="<%= relatedScId %>"> 
+                    <% } %>
+                     <% if (relatedScTitle) { %>
+                        <input type="hidden" name="relatedScTitle" value="<%= relatedScTitle %>">
+                    <% } %>
+                     <% if (relatedOrderId) { %>
+                        <input type="hidden" name="orderId" value="<%= relatedOrderId %>">
+                        <input type="hidden" name="relatedOrderId" value="<%= relatedOrderId %>">
+                    <% } %>
+
+
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subjek <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="subject" name="subject" value="<%= subject %>" minlength="5" required>
+                        <div class="invalid-feedback">Subjek minimal 5 karakter.</div>
+                    </div>
+
+                    <% if (!receiverId && (!relatedScId || !relatedOrderId)) { %>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="orderId" class="form-label">Terkait Pesanan (Opsional)</label>
+                                <select class="form-select" id="orderId" name="orderId">
+                                    <option value="">Tidak terkait pesanan spesifik</option>
+                                    <% if (userOrders && userOrders.length > 0) { %>
+                                        <% userOrders.forEach(order => { %>
+                                            <option value="<%= order._id %>" <%= (typeof orderId !== 'undefined' && orderId === order._id.toString()) ? 'selected' : '' %>>
+                                                Pesanan <%= order.scTitleAtPurchase || (order.sourceCode ? order.sourceCode.title : 'ID ' + order._id.toString().slice(-5)) %> 
+                                                (<%= new Date(order.createdAt).toLocaleDateString('id-ID') %>)
+                                            </option>
+                                        <% }) %>
+                                    <% } %>
+                                </select>
+                            </div>
+                             <div class="col-md-6 mb-3">
+                                <label for="scIdInput" class="form-label">Terkait Source Code (Opsional)</label>
+                                <input type="text" class="form-control" id="scIdInput" name="scId" value="<%= (typeof scIdFlash !== 'undefined' && scIdFlash) ? scIdFlash : (typeof relatedScId !== 'undefined' ? relatedScId : '') %>" placeholder="ID Source Code jika spesifik">
+                                <small class="form-text text-muted">Isi jika pertanyaan terkait SC tertentu yang tidak ada di daftar pesanan Anda.</small>
+                            </div>
+                        </div>
+                    <% } else if (relatedScId && relatedScTitle) { %>
+                         <p class="mb-3">Tiket ini terkait dengan Source Code: <strong><%= relatedScTitle %></strong> (ID: <%= relatedScId %>)</p>
+                    <% } else if (relatedOrderId) { %>
+                         <p class="mb-3">Tiket ini terkait dengan Pesanan ID: <strong><%= relatedOrderId %></strong></p>
+                    <% } %>
+
+
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Pesan Anda <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="message" name="message" rows="6" minlength="10" required><%= message %></textarea>
+                        <div class="invalid-feedback">Pesan minimal 10 karakter.</div>
+                    </div>
+                    
+                    <% if (!receiverId) { %> <%# Hanya tampilkan prioritas jika bukan direct message ke seller %>
+                    <div class="mb-4">
+                        <label for="priority" class="form-label">Prioritas</label>
+                        <select class="form-select" id="priority" name="priority">
+                            <option value="medium" <%= (typeof priority !== 'undefined' && priority === 'medium') ? 'selected' : '' %>>Medium</option>
+                            <option value="low" <%= (typeof priority !== 'undefined' && priority === 'low') ? 'selected' : '' %>>Rendah</option>
+                            <option value="high" <%= (typeof priority !== 'undefined' && priority === 'high') ? 'selected' : '' %>>Tinggi</option>
+                        </select>
+                    </div>
+                    <% } else { %>
+                        <input type="hidden" name="priority" value="medium"> <%# Default priority for DM to seller %>
+                    <% } %>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-paper-plane me-2"></i>Kirim Tiket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
