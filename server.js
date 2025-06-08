@@ -20,7 +20,6 @@ const { checkUser, requireAuth } = require('./middleware/authMiddleware');
 const app = express();
 
 connectDB();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
