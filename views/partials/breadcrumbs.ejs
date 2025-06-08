@@ -1,0 +1,15 @@
+<%# views/partials/breadcrumbs.ejs %>
+<% if (typeof breadcrumbs !== 'undefined' && breadcrumbs.length > 0) { %>
+<nav aria-label="breadcrumb" class="mb-3 mt-1">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Beranda</a></li>
+    <% breadcrumbs.forEach(function(crumb, index) { %>
+      <% if (crumb.active) { %>
+        <li class="breadcrumb-item active" aria-current="page"><%= crumb.name %></li>
+      <% } else { %>
+        <li class="breadcrumb-item"><a href="<%= crumb.url %>"><%= crumb.name %></a></li>
+      <% } %>
+    <% }); %>
+  </ol>
+</nav>
+<% } %>

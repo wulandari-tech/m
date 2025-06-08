@@ -1,37 +1,51 @@
-const { Router } = require('express');
+const express = require('express');
+const router = express.Router();
 const scController = require('../controllers/scController');
-const { requireAuth, authorizeRoles } = require('../middleware/authMiddleware');
-const { uploadFields } = require('../middleware/uploadMiddleware'); 
-const router = Router();
-router.get('/', scController.get_all_sc_api);
-router.get('/:id', scController.get_sc_by_id_api);
-router.post('/', requireAuth, authorizeRoles('seller', 'admin'), (req, res, next) => {
-    uploadFields(req, res, function (err) {
-        if (err) {
-            let errors = [];
-            if (err.code === 'LIMIT_FILE_SIZE') {
-                 errors.push({ msg: `File terlalu besar. Maksimal ${err.field === 'sc_file' ? '50MB' : '5MB'}.` });
-            } else if (err.message) { 
-                errors.push({ msg: err.message });
-            } else {
-                errors.push({ msg: 'Terjadi kesalahan saat upload file.' });
-            }
-            return res.status(400).render('sc/add', {
-                errors,
-                title: req.body.title,
-                description: req.body.description,
-                category: req.body.category,
-                tags: req.body.tags,
-                price_buy_str: req.body.price_buy_str,
-                is_for_rent_only: req.body.is_for_rent_only,
-                demoUrl: req.body.demoUrl,
-                techStack: req.body.techStack,
-                rental_options_data: [], 
-                titlePage: 'Tambah Source Code'
-            });
+const { isAuthenticated, isSeller } = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        if (file.fieldname === "sc_file") {
+            cb(null, 'uploads/sc_files/');
+        } else if (file.fieldname === "screenshots") {
+            cb(null, 'uploads/screenshots/');
+        } else {
+            cb(null, 'uploads/others/');
         }
-        next();
-    });
-}, scController.create_sc_post);
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    if (file.fieldname === "sc_file") {
+        if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed' || file.mimetype === 'text/plain' || file.mimetype === 'application/octet-stream') {
+            cb(null, true);
+        } else {
+            cb(new Error('Hanya file .zip atau .txt yang diizinkan untuk file SC!'), false);
+        }
+    } else if (file.fieldname === "screenshots") {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Hanya file gambar yang diizinkan untuk screenshot!'), false);
+        }
+    } else {
+        cb(null, false);
+    }
+};
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 50 * 1024 * 1024, files: 6 }, 
+    fileFilter: fileFilter
+});
+
+router.get('/add', isAuthenticated, isSeller, scController.getAddScForm);
+router.post('/', isAuthenticated, isSeller, upload.fields([{ name: 'sc_file', maxCount: 1 }, { name: 'screenshots', maxCount: 5 }]), scController.createSc);
+router.get('/:id', scController.getScDetail);
+router.post('/:id/reviews', isAuthenticated, scController.submitReview);
 
 module.exports = router;

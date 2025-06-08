@@ -1,9 +1,11 @@
-const { Router } = require('express');
-const orderController = require('../controllers/orderController');
-const { requireAuth } = require('../middleware/authMiddleware');
+const express = require('express');
+const router = express.Router();
+const orderController = require('../controllers/orderController'); // Pastikan path ini benar
+const { isAuthenticated } = require('../middleware/auth');
 
-const router = Router();
-router.post('/', requireAuth, orderController.create_order_post);
-
+// POST /api/orders/
+router.post('/', isAuthenticated, orderController.createOrder);
+router.get('/status', isAuthenticated, orderController.getOrderStatusPage);
+router.post('/qris/check-status', isAuthenticated, orderController.checkQrisOrderStatus);
 
 module.exports = router;

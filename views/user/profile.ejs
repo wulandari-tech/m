@@ -1,0 +1,81 @@
+<%# views/user/profile.ejs %>
+<h1><i class="fas fa-user-cog"></i> Pengaturan Profile</h1>
+<hr>
+
+<div class="row">
+    <div class="col-lg-7 col-md-12">
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light py-3">
+                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Edit Informasi Dasar</h5>
+            </div>
+            <div class="card-body">
+                <form action="/api/user/profile/update" method="POST"> <%# Route needs to be defined in userRoutes.js and handled by userController.js %>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nama Lengkap</label>
+                        <input type="text" name="name" id="name" class="form-control" value="<%= currentUser.name %>" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" name="email" id="email" class="form-control" value="<%= currentUser.email %>" readonly disabled>
+                        <small class="form-text text-muted">Email tidak dapat diubah.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Simpan Nama</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-light py-3">
+                 <h5 class="mb-0"><i class="fas fa-key me-2"></i>Ubah Password</h5>
+            </div>
+            <div class="card-body">
+                <form action="/api/user/profile/change-password" method="POST"> <%# Route needs to be defined and handled %>
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Password Saat Ini</label>
+                        <input type="password" name="current_password" id="current_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Password Baru</label>
+                        <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm_new_password" class="form-label">Konfirmasi Password Baru</label>
+                        <input type="password" name="confirm_new_password" id="confirm_new_password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-warning"><i class="fas fa-sync-alt me-1"></i> Ubah Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <% if (currentUser.role === 'seller' || currentUser.role === 'admin') { %>
+    <div class="col-lg-5 col-md-12">
+        <div class="card mb-4 shadow-sm" id="qris-settings">
+            <div class="card-header bg-light py-3">
+                <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Pengaturan QRIS Saya</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Konfigurasi ini akan digunakan untuk menghasilkan QRIS dinamis saat pembeli memilih metode pembayaran QRIS untuk source code yang Anda jual.</p>
+                <form action="/api/user/profile/qris-settings" method="POST"> <%# Route needs to be defined and handled %>
+                    <div class="mb-3">
+                        <label for="qrisBaseCode" class="form-label">Kode Dasar QRIS Statis Anda</label>
+                        <textarea name="qrisBaseCode" id="qrisBaseCode" class="form-control" rows="4" placeholder="Contoh: 0002010102112658001...5802ID...6000"><%= currentUser.qrisBaseCode || '' %></textarea>
+                        <small class="form-text text-muted">Ini adalah string QRIS statis Anda yang akan dimodifikasi untuk jumlah dinamis. <br><strong>Penting:</strong> Pastikan strukturnya benar dan tidak menyertakan CRC di akhir jika ingin sistem menghasilkan CRC dinamis.</small>
+                    </div>
+                     <div class="mb-3">
+                        <label for="qrisMerchantId" class="form-label">Merchant ID Okeconnect (Opsional)</label>
+                        <input type="text" name="qrisMerchantId" id="qrisMerchantId" class="form-control" value="<%= currentUser.qrisMerchantId || '' %>" placeholder="Misal: MCH12345">
+                        <small class="form-text text-muted">Untuk pengecekan status pembayaran via API Okeconnect.</small>
+                    </div>
+                     <div class="mb-3">
+                        <label for="qrisApiKey" class="form-label">API Key Okeconnect (Opsional)</label>
+                        <input type="text" name="qrisApiKey" id="qrisApiKey" class="form-control" value="<%= currentUser.qrisApiKey || '' %>" placeholder="Kunci API dari Okeconnect">
+                         <small class="form-text text-muted">Pasangan dari Merchant ID.</small>
+                    </div>
+                    <button type="submit" class="btn btn-info"><i class="fas fa-cogs me-1"></i> Simpan Pengaturan QRIS</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <% } %>
+</div>

@@ -1,104 +1,99 @@
 const User = require('../models/user');
-const jwt = require('jsonwebtoken');
 const validator = require('validator');
-const maxAge = 3 * 24 * 60 * 60;
-const createToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: maxAge
-  });
+
+exports.registerUser = async (req, res) => {
+    const { name, email, password, confirm_password, role } = req.body;
+    let errors = [];
+
+    if (!name || !email || !password || !confirm_password || !role) {
+        errors.push({ msg: 'Mohon isi semua field yang wajib.' });
+    }
+    if (password !== confirm_password) {
+        errors.push({ msg: 'Password tidak cocok.' });
+    }
+    if (password && password.length < 6) {
+        errors.push({ msg: 'Password minimal 6 karakter.' });
+    }
+    if (email && !validator.isEmail(email)) {
+        errors.push({ msg: 'Format email tidak valid.' });
+    }
+    if (!['customer', 'seller'].includes(role)) {
+        errors.push({ msg: 'Role tidak valid.' });
+    }
+
+    if (errors.length > 0) {
+        req.flash('errors', errors);
+        req.flash('name', name);
+        req.flash('email', email);
+        req.flash('role', role);
+        return res.redirect('/register');
+    }
+
+    try {
+        let user = await User.findOne({ email: email.toLowerCase() });
+        if (user) {
+            req.flash('error_msg', 'Email sudah terdaftar.');
+            req.flash('name', name);
+            req.flash('role', role);
+            return res.redirect('/register');
+        }
+        const newUser = new User({ name, email: email.toLowerCase(), password, role });
+        await newUser.save();
+        req.flash('success_msg', 'Registrasi berhasil! Silakan login.');
+        res.redirect('/login');
+    } catch (error) {
+        console.error("Register User Error:", error);
+        req.flash('error_msg', 'Terjadi kesalahan server saat registrasi.');
+        req.flash('name', name);
+        req.flash('email', email);
+        req.flash('role', role);
+        res.redirect('/register');
+    }
 };
 
-module.exports.register_post = async (req, res) => {
-  const { name, email, password, confirm_password, role } = req.body;
-  let errors = [];
+exports.loginUser = async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        req.flash('error_msg', 'Mohon isi email dan password.');
+        return res.redirect('/login');
+    }
+    try {
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            req.flash('error_msg', 'Email tidak terdaftar.');
+            req.flash('email', email);
+            return res.redirect('/login');
+        }
+        const isMatch = await user.comparePassword(password);
+        if (!isMatch) {
+            req.flash('error_msg', 'Password salah.');
+            req.flash('email', email);
+            return res.redirect('/login');
+        }
+        req.session.userId = user._id;
+        req.flash('success_msg', 'Login berhasil!');
+        
+        const redirectUrl = req.session.returnTo || '/dashboard';
+        delete req.session.returnTo;
+        res.redirect(redirectUrl);
 
-  if (!name || !email || !password || !confirm_password || !role) {
-    errors.push({ msg: 'Mohon isi semua field yang wajib diisi' });
-  }
-  if (password !== confirm_password) {
-    errors.push({ msg: 'Password tidak cocok' });
-  }
-  if (password && password.length < 6) {
-    errors.push({ msg: 'Password minimal 6 karakter' });
-  }
-  if (email && !validator.isEmail(email)) {
-    errors.push({ msg: 'Email tidak valid' });
-  }
-  const validRoles = ['customer', 'seller'];
-  if (role && !validRoles.includes(role)) {
-    errors.push({ msg: 'Pilihan peran tidak valid' });
-  }
+    } catch (error) {
+        console.error("Login User Error:", error);
+        req.flash('error_msg', 'Terjadi kesalahan server saat login.');
+        req.flash('email', email);
+        res.redirect('/login');
+    }
+};
 
-  if (errors.length > 0) {
-    return res.status(400).render('auth/register', {
-      errors, name, email, password, confirm_password, role, title: 'Register'
+exports.logoutUser = (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error("Session destruction error:", err);
+            req.flash('error_msg', 'Gagal logout.');
+            return res.redirect('/');
+        }
+        res.clearCookie('connect.sid');
+        req.flash('success_msg', 'Anda berhasil logout.');
+        res.redirect('/login');
     });
-  }
-
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      errors.push({ msg: 'Email sudah terdaftar' });
-      return res.status(400).render('auth/register', {
-        errors, name, email, password, confirm_password, role, title: 'Register'
-      });
-    }
-
-    const user = await User.create({ name, email, password, role });
-    const token = createToken(user._id);
-    res.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });
-    req.flash('success_msg', 'Registrasi berhasil! Selamat datang.');
-    res.status(201).redirect('/dashboard');
-  } catch (err) {
-    console.error(err);
-    errors.push({ msg: 'Terjadi kesalahan server saat registrasi.' });
-    res.status(500).render('auth/register', {
-      errors, name, email, password, confirm_password, role, title: 'Register'
-    });
-  }
-};
-
-module.exports.login_post = async (req, res) => {
-  const { email, password } = req.body;
-  let errors = [];
-
-  if (!email || !password) {
-    errors.push({ msg: 'Mohon isi email dan password' });
-  }
-  if (email && !validator.isEmail(email)) {
-    errors.push({ msg: 'Format email tidak valid' });
-  }
-
-  if (errors.length > 0) {
-    return res.status(400).render('auth/login', { errors, email, password, title: 'Login' });
-  }
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      errors.push({ msg: 'Email tidak terdaftar' });
-      return res.status(400).render('auth/login', { errors, email, password, title: 'Login' });
-    }
-
-    const auth = await user.matchPassword(password);
-    if (auth) {
-      const token = createToken(user._id);
-      res.cookie('jwt', token, { httpOnly: true, maxAge: maxAge * 1000 });
-      req.flash('success_msg', 'Login berhasil!');
-      res.status(200).redirect('/dashboard');
-    } else {
-      errors.push({ msg: 'Password salah' });
-      return res.status(400).render('auth/login', { errors, email, password, title: 'Login' });
-    }
-  } catch (err) {
-    console.error(err);
-    errors.push({ msg: 'Terjadi kesalahan server saat login.' });
-    res.status(500).render('auth/login', { errors, email, password, title: 'Login' });
-  }
-};
-
-module.exports.logout_get = (req, res) => {
-  res.cookie('jwt', '', { maxAge: 1 });
-  req.flash('success_msg', 'Anda telah logout.');
-  res.redirect('/login');
 };

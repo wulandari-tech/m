@@ -1,131 +1,257 @@
-<div class="row" id="sc-detail-page">
-    <div class="col-md-8">
-        <h1><%= sc.title %></h1>
-        <p class="text-muted">
-            <i class="fas fa-folder"></i> Kategori: <%= sc.category %> |
-            <i class="fas fa-user-tie"></i> Seller: <%= sc.seller ? sc.seller.name : 'N/A' %>
-            <% if (sc.seller && sc.seller.email) { %>
-                (<a href="mailto:<%= sc.seller.email %>"><i class="fas fa-envelope"></i> Kontak Seller</a>)
-            <% } %>
-        </p>
+<%- include('../partials/breadcrumbs', { breadcrumbs: [ { name: 'Semua SC', url: '/sc-list'}, { name: sc.title, active: true } ] }) %>
 
+<div class="row" id="sc-detail-page">
+    <div class="col-lg-8">
+        <div class="sc-header mb-3">
+            <h1 class="sc-title display-5 fw-bold"><%= sc.title %></h1>
+            <div class="sc-meta d-flex flex-wrap align-items-center text-muted small">
+                <span class="me-3"><i class="fas fa-folder me-1"></i> Kategori: <a href="/sc-list?category=<%= encodeURIComponent(sc.category) %>" class="text-decoration-none"><span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><%= sc.category %></span></a></span>
+                <span class="me-3"><i class="fas fa-user-tie me-1"></i> Seller: 
+                    <% if (sc.seller) { %>
+                        <a href="#seller-profile-link" class="text-decoration-none"><%= sc.seller.name %></a>
+                        <% if (sc.seller.email) { %>
+                            (<a href="mailto:<%= sc.seller.email %>" title="Kontak Seller"><i class="fas fa-envelope"></i></a>)
+                        <% } %>
+                    <% } else { %> N/A <% } %>
+                </span>
+                <span class="me-3"><i class="far fa-calendar-alt me-1"></i> Diupload: <%= new Date(sc.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' }) %></span>
+                <% if (sc.averageRating && sc.averageRating > 0) { %>
+                    <span class="text-warning">
+                        <% for(let i = 1; i <= 5; i++) { %><i class="<%= i <= sc.averageRating ? 'fas' : 'far' %> fa-star"></i><% } %>
+                        (<%= sc.averageRating.toFixed(1) %> dari <%= sc.totalReviews %> ulasan)
+                    </span>
+                <% } %>
+            </div>
+        </div>
+        
         <% if (sc.screenshots && sc.screenshots.length > 0) { %>
-            <h4><i class="fas fa-images"></i> Screenshots</h4>
-            <div class="row row-cols-2 row-cols-md-3 g-3 mb-3">
-                <% sc.screenshots.forEach(ss_path => { %>
-                    <div class="col">
-                        <a href="/<%= ss_path.replace(/\\/g, '/') %>" data-bs-toggle="lightbox" data-gallery="sc-gallery">
-                            <img src="/<%= ss_path.replace(/\\/g, '/') %>" class="img-fluid rounded" alt="Screenshot <%= sc.title %>">
-                        </a>
-                    </div>
-                <% }) %>
+            <div id="carouselScDetailScreenshots" class="carousel slide shadow-sm rounded border mb-4" data-bs-ride="carousel">
+                <div class="carousel-indicators">
+                    <% sc.screenshots.forEach((ss_path, index) => { %>
+                        <button type="button" data-bs-target="#carouselScDetailScreenshots" data-bs-slide-to="<%= index %>" class="<%= index === 0 ? 'active' : '' %>" aria-current="<%= index === 0 ? 'true' : 'false' %>" aria-label="Slide <%= index + 1 %>"></button>
+                    <% }) %>
+                </div>
+                <div class="carousel-inner rounded" style="max-height: 450px; overflow: hidden;">
+                    <% sc.screenshots.forEach((ss_path, index) => { %>
+                        <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+                            <a href="/<%= ss_path.replace(/\\/g, '/') %>" data-bs-toggle="lightbox" data-gallery="sc-gallery-detail">
+                                <img src="/<%= ss_path.replace(/\\/g, '/') %>" class="d-block w-100" alt="Screenshot <%= index + 1 %> - <%= sc.title %>" style="object-fit: contain; max-height: 450px; background-color: #f8f9fa;">
+                            </a>
+                        </div>
+                    <% }) %>
+                </div>
+                <% if (sc.screenshots.length > 1) { %>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carouselScDetailScreenshots" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carouselScDetailScreenshots" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                <% } %>
             </div>
         <% } else { %>
-            <div class="mb-3 p-3 border rounded text-center bg-light">
-                 <i class="fas fa-image fa-3x text-muted"></i>
-                 <p class="mt-2 text-muted">Belum ada screenshot.</p>
+            <div class="mb-4 p-5 border rounded text-center bg-light-subtle">
+                 <i class="fas fa-image fa-4x text-muted"></i>
+                 <p class="mt-2 text-muted fs-5">Screenshot belum tersedia.</p>
             </div>
         <% } %>
 
-        <h4><i class="fas fa-info-circle"></i> Deskripsi</h4>
-        <p><%- sc.description.replace(/\n/g, '<br>') %></p>
+        <nav>
+            <div class="nav nav-tabs mb-3" id="scDetailTab" role="tablist">
+                <button class="nav-link active" id="nav-description-tab" data-bs-toggle="tab" data-bs-target="#nav-description" type="button" role="tab" aria-controls="nav-description" aria-selected="true"><i class="fas fa-info-circle me-1"></i>Deskripsi</button>
+                <button class="nav-link" id="nav-techstack-tab" data-bs-toggle="tab" data-bs-target="#nav-techstack" type="button" role="tab" aria-controls="nav-techstack" aria-selected="false"><i class="fas fa-cogs me-1"></i>Teknologi</button>
+                <button class="nav-link" id="nav-reviews-tab" data-bs-toggle="tab" data-bs-target="#nav-reviews" type="button" role="tab" aria-controls="nav-reviews" aria-selected="false"><i class="fas fa-comments me-1"></i>Ulasan (<%= sc.totalReviews || 0 %>)</button>
+            </div>
+        </nav>
+        <div class="tab-content bg-white p-3 p-md-4 rounded border shadow-sm" id="nav-tabContent">
+            <div class="tab-pane fade show active" id="nav-description" role="tabpanel" aria-labelledby="nav-description-tab">
+                <h4 class="mb-3 d-none">Deskripsi Lengkap</h4>
+                <div class="description-box-detail">
+                     <%- sc.description.replace(/\n/g, '<br>') %>
+                </div>
+                <% if (sc.demoUrl) { %>
+                    <p class="mt-4"><a href="<%= sc.demoUrl %>" target="_blank" class="btn btn-info btn-lg"><i class="fas fa-external-link-alt me-1"></i> Lihat Demo Aplikasi</a></p>
+                <% } %>
+            </div>
+            <div class="tab-pane fade" id="nav-techstack" role="tabpanel" aria-labelledby="nav-techstack-tab">
+                <h4 class="mb-3 d-none">Teknologi yang Digunakan</h4>
+                <% if (sc.techStack && sc.techStack.length > 0) { %>
+                <p>
+                    <% sc.techStack.forEach(tech => { %>
+                    <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle fs-6 me-1 mb-1 p-2"><i class="fas fa-tag me-1"></i><%= tech %></span>
+                    <% }) %>
+                </p>
+                <% } else { %>
+                    <p class="text-muted">Informasi teknologi tidak tersedia.</p>
+                <% } %>
+                 <h4 class="mt-4 mb-2">Tags Tambahan:</h4>
+                 <% if (sc.tags && sc.tags.length > 0) { %>
+                    <p>
+                        <% sc.tags.forEach(tag => { %>
+                        <span class="badge bg-light text-dark border me-1 mb-1 p-2"><%= tag %></span>
+                        <% }) %>
+                    </p>
+                <% } else { %>
+                    <p class="text-muted">Tidak ada tags tambahan.</p>
+                <% } %>
+            </div>
+            <div class="tab-pane fade" id="nav-reviews" role="tabpanel" aria-labelledby="nav-reviews-tab">
+                <h4 class="mb-3 d-none">Ulasan Pengguna</h4>
+                 <% if (currentUser && hasPurchasedOrRented && !hasReviewed) { %>
+                    <div class="card mb-4 border-primary">
+                        <div class="card-body">
+                            <h5 class="card-title">Tulis Ulasan Anda:</h5>
+                            <form action="/api/sc/<%= sc._id %>/reviews" method="POST">
+                                <div class="mb-2">
+                                    <label for="rating_detail" class="form-label">Rating Anda:</label>
+                                    <div id="ratingStarsDetail" class="mb-2">
+                                        <% for(let i = 5; i >= 1; i--) { %>
+                                        <input type="radio" id="starDetail<%= i %>_<%= sc._id %>" name="rating" value="<%= i %>" class="d-none" required/>
+                                        <label for="starDetail<%= i %>_<%= sc._id %>" title="<%= i %> bintang" class="fs-4 text-secondary star-label-detail"><i class="far fa-star"></i></label>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <label for="comment_detail" class="form-label">Komentar (Opsional):</label>
+                                    <textarea name="comment" id="comment_detail" rows="3" class="form-control" placeholder="Bagikan pengalaman Anda..."></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Kirim Ulasan</button>
+                            </form>
+                        </div>
+                    </div>
+                <% } else if (currentUser && hasReviewed) { %>
+                     <p class="alert alert-light border"><i class="fas fa-check-circle text-success me-1"></i> Anda sudah memberikan ulasan untuk produk ini.</p>
+                <% } else if (currentUser && !hasPurchasedOrRented) { %>
+                    <p class="alert alert-info py-2"><i class="fas fa-info-circle me-1"></i> Anda harus membeli atau menyewa SC ini terlebih dahulu untuk memberikan ulasan.</p>
+                <% } else if (!currentUser) { %>
+                    <p class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle me-1"></i> <a href="/login?redirect=/sc/<%= sc._id %>" class="alert-link">Login</a> untuk memberikan ulasan.</p>
+                <% } %>
 
-        <% if (sc.techStack && sc.techStack.length > 0) { %>
-        <h4><i class="fas fa-cogs"></i> Teknologi yang Digunakan</h4>
-        <p>
-            <% sc.techStack.forEach(tech => { %>
-            <span class="badge bg-secondary me-1"><%= tech %></span>
-            <% }) %>
-        </p>
-        <% } %>
-
-        <% if (sc.demoUrl) { %>
-        <p><a href="<%= sc.demoUrl %>" target="_blank" class="btn btn-info btn-sm"><i class="fas fa-external-link-alt"></i> Lihat Demo</a></p>
-        <% } %>
+                <% if (reviews && reviews.length > 0) { %>
+                    <% reviews.forEach(review => { %>
+                        <div class="review-item mb-3 pb-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-user-circle me-1"></i><%= review.user ? review.user.name : 'Pengguna Anonim' %></h6>
+                                <span class="text-warning small">
+                                    <% for(let i = 1; i <= 5; i++) { %> <i class="<%= i <= review.rating ? 'fas' : 'far' %> fa-star"></i> <% } %>
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-1"><%= new Date(review.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) %></p>
+                            <% if (review.comment && review.comment.trim() !== '') { %>
+                                <p class="mb-0"><%= review.comment %></p>
+                            <% } else { %>
+                                <p class="mb-0 fst-italic text-muted">Tidak ada komentar.</p>
+                            <% } %>
+                        </div>
+                    <% }) %>
+                <% } else if (! (currentUser && hasPurchasedOrRented && !hasReviewed) ) { %>
+                    <p class="text-muted">Belum ada ulasan untuk source code ini. Jadilah yang pertama!</p>
+                <% } %>
+            </div>
+        </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="card shadow-sm sticky-top" style="top: 80px;">
+            <div class="card-header bg-gradient bg-primary text-white">
+                 <h4 class="card-title mb-0 py-1"><i class="fas fa-dollar-sign me-2"></i>Opsi Transaksi</h4>
+            </div>
             <div class="card-body">
-                <h4 class="card-title">Opsi Transaksi</h4>
-                <hr>
                 <% if (existingOrder && existingOrder.paymentStatus === 'completed') { %>
                     <% if (existingOrder.orderType === 'buy') { %>
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle"></i> Anda telah membeli source code ini.
-                            <br>
-                            <% if (sc.filePath) { %>
-                            <a href="/<%= sc.filePath.replace(/\\/g, '/') %>" class="btn btn-success btn-sm mt-2" download>
-                                <i class="fas fa-download"></i> Unduh Sekarang (<%= sc.filePath.split('.').pop().toUpperCase() %>)
+                        <div class="alert alert-success d-flex flex-column">
+                            <h5 class="alert-heading mb-2"><i class="fas fa-check-circle me-1"></i> Anda Telah Membeli!</h5>
+                            <p class="mb-2">Source code ini sudah menjadi milik Anda.</p>
+                            <% if (sc.filePath && existingOrder.downloadLink) { %>
+                            <hr class="my-2">
+                            <a href="<%= existingOrder.downloadLink %>" class="btn btn-success w-100 mt-auto" download>
+                                <i class="fas fa-download me-1"></i> Unduh Sekarang (<%= sc.filePath.split('.').pop().toUpperCase() %>)
                             </a>
                             <% } else { %>
-                                <button class="btn btn-success btn-sm mt-2 disabled"><i class="fas fa-download"></i> File Tidak Tersedia</button>
+                                <button class="btn btn-success w-100 mt-auto disabled"><i class="fas fa-download me-1"></i> File Tidak Tersedia</button>
                             <% } %>
                         </div>
                     <% } else if (existingOrder.orderType === 'rent') { %>
-                        <div class="alert alert-info">
-                            <i class="fas fa-calendar-check"></i> Anda sedang menyewa SC ini hingga
-                            <%= new Date(existingOrder.rentalEndDate).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) %>.
+                        <div class="alert alert-info d-flex flex-column">
+                            <h5 class="alert-heading mb-2"><i class="fas fa-calendar-check me-1"></i> Anda Sedang Menyewa!</h5>
+                            <p class="mb-1">Aktif hingga: <br><strong><%= new Date(existingOrder.rentalEndDate).toLocaleString('id-ID', { dateStyle:'full', timeStyle:'short' }) %></strong>.</p>
                             <% if (sc.filePath && new Date() <= new Date(existingOrder.rentalEndDate)) { %>
-                                <br><a href="/<%= sc.filePath.replace(/\\/g, '/') %>" class="btn btn-info btn-sm mt-2" download><i class="fas fa-file-code"></i> Unduh File Sewa</a>
+                                <hr class="my-2">
+                                <a href="/<%= sc.filePath.replace(/\\/g, '/') %>" class="btn btn-info w-100 mt-auto" download><i class="fas fa-file-code me-1"></i> Unduh File Sewa</a>
                             <% } else if (sc.filePath) { %>
-                                <br><button class="btn btn-info btn-sm mt-2 disabled"><i class="fas fa-file-code"></i> Masa Sewa Habis</button>
+                                <hr class="my-2">
+                                <button class="btn btn-info w-100 mt-auto disabled"><i class="fas fa-file-code me-1"></i> Masa Sewa Habis</button>
                             <% } %>
                         </div>
                     <% } %>
                 <% } else { %>
                     <% if (!sc.is_for_rent_only && sc.price_buy) { %>
-                        <div class="mb-3 p-3 border rounded">
-                            <form action="/api/orders" method="POST">
+                        <div class="mb-3 p-3 border rounded bg-light-subtle transaction-option-box">
+                            <form action="/api/orders" method="POST" class="needs-validation" novalidate>
                                 <input type="hidden" name="scId" value="<%= sc._id %>">
                                 <input type="hidden" name="orderType" value="buy">
-                                <h5><i class="fas fa-shopping-cart"></i> Beli Source Code</h5>
-                                <p class="fs-4 fw-bold text-success">Rp <%= sc.price_buy.toLocaleString('id-ID') %></p>
+                                <h5 class="mb-1 d-flex align-items-center"><i class="fas fa-shopping-bag me-2 text-success"></i> Beli Source Code</h5>
+                                <p class="fs-3 fw-bold text-success mb-1">Rp <%= sc.price_buy.toLocaleString('id-ID') %></p>
                                 <p><small class="text-muted">Lisensi permanen, dapatkan source code lengkap.</small></p>
                                 <div class="mb-2">
-                                    <label for="payment_method_buy" class="form-label">Metode Pembayaran:</label>
-                                    <select name="payment_method" id="payment_method_buy" class="form-select form-select-sm" required <%= !currentUser ? 'disabled' : '' %>>
+                                    <label for="payment_method_buy_detail" class="form-label small fw-semibold">Metode Pembayaran:</label>
+                                    <select name="payment_method" id="payment_method_buy_detail" class="form-select form-select-sm" required <%= !currentUser ? 'disabled' : '' %>>
+                                        <option value="">Pilih Metode...</option>
                                         <option value="saldo">Saldo Akun (Rp <%= currentUser ? currentUser.balance.toLocaleString('id-ID') : '0' %>)</option>
-                                        <option value="midtrans">Midtrans (Transfer, E-Wallet, dll)</option>
+                                        <option value="midtrans">Midtrans (Lengkap)</option>
+                                        <% if (sc.seller && sc.seller.qrisBaseCode) { %>
+                                        <option value="qris_orkut">QRIS Seller (Scan via HP)</option>
+                                        <% } %>
                                     </select>
+                                     <div class="invalid-feedback">Pilih metode pembayaran.</div>
                                 </div>
                                 <button type="submit" class="btn btn-success w-100 <%= !currentUser ? 'disabled' : '' %>">
-                                    <i class="fas fa-dollar-sign"></i> Beli Sekarang
+                                    <i class="fas fa-dollar-sign me-1"></i> Beli Sekarang
                                 </button>
                             </form>
                         </div>
                     <% } %>
 
                     <% if (sc.rental_options && sc.rental_options.length > 0) { %>
-                        <div class="mt-3 p-3 border rounded">
-                            <form action="/api/orders" method="POST">
+                        <div class="mt-3 p-3 border rounded bg-light-subtle transaction-option-box">
+                            <form action="/api/orders" method="POST" class="needs-validation" novalidate>
                                 <input type="hidden" name="scId" value="<%= sc._id %>">
                                 <input type="hidden" name="orderType" value="rent">
-                                <h5><i class="fas fa-calendar-alt"></i> Sewa Source Code</h5>
+                                <h5 class="mb-1 d-flex align-items-center"><i class="fas fa-calendar-alt me-2 text-warning"></i> Sewa Source Code</h5>
                                 <% sc.rental_options.forEach((option, index) => { %>
-                                    <div class="form-check">
-                                      <input class="form-check-input" type="radio" name="rentalOptionIndex" id="rentalOption<%= index %>_<%= sc._id %>" value="<%= index %>" <%= index === 0 ? 'checked' : '' %>>
-                                      <label class="form-check-label" for="rentalOption<%= index %>_<%= sc._id %>">
+                                    <div class="form-check my-2">
+                                      <input class="form-check-input" type="radio" name="rentalOptionIndex" id="rentalOptionDetail<%= index %>_<%= sc._id %>" value="<%= index %>" <%= index === 0 ? 'checked' : '' %> <%= !currentUser ? 'disabled' : '' %> required>
+                                      <label class="form-check-label" for="rentalOptionDetail<%= index %>_<%= sc._id %>">
                                         <%= option.duration %> - <strong>Rp <%= option.price.toLocaleString('id-ID') %></strong>
                                       </label>
                                     </div>
                                 <% }); %>
+                                 <div class="invalid-feedback d-block mb-2" id="rentalOptionError" style="display:none;">Pilih opsi sewa.</div>
                                 <div class="mb-2 mt-2">
-                                    <label for="payment_method_rent" class="form-label">Metode Pembayaran:</label>
-                                    <select name="payment_method" id="payment_method_rent" class="form-select form-select-sm" required <%= !currentUser ? 'disabled' : '' %>>
+                                    <label for="payment_method_rent_detail" class="form-label small fw-semibold">Metode Pembayaran:</label>
+                                    <select name="payment_method" id="payment_method_rent_detail" class="form-select form-select-sm" required <%= !currentUser ? 'disabled' : '' %>>
+                                        <option value="">Pilih Metode...</option>
                                         <option value="saldo">Saldo Akun (Rp <%= currentUser ? currentUser.balance.toLocaleString('id-ID') : '0' %>)</option>
-                                        <option value="midtrans">Midtrans (Transfer, E-Wallet, dll)</option>
+                                        <option value="midtrans">Midtrans (Lengkap)</option>
+                                         <% if (sc.seller && sc.seller.qrisBaseCode) { %>
+                                        <option value="qris_orkut">QRIS Seller (Scan via HP)</option>
+                                        <% } %>
                                     </select>
+                                     <div class="invalid-feedback">Pilih metode pembayaran.</div>
                                 </div>
-                                <button type="submit" class="btn btn-warning w-100 mt-2 <%= !currentUser ? 'disabled' : '' %>">
-                                    <i class="fas fa-key"></i> Sewa Sekarang
+                                <button type="submit" class="btn btn-warning w-100 text-dark mt-2 <%= !currentUser ? 'disabled' : '' %>">
+                                    <i class="fas fa-key me-1"></i> Sewa Sekarang
                                 </button>
                             </form>
                         </div>
                     <% } %>
                     
                     <% if (!currentUser) { %>
-                        <p class="mt-3 text-danger"><i class="fas fa-exclamation-triangle"></i> <a href="/login?redirect=/sc/<%= sc._id %>">Login</a> atau <a href="/register?redirect=/sc/<%= sc._id %>">Register</a> untuk melakukan transaksi.</p>
+                        <div class="alert alert-danger mt-3 py-2 small">
+                            <i class="fas fa-exclamation-triangle me-1"></i> <a href="/login?redirect=/sc/<%= sc._id %>" class="alert-link">Login</a> atau <a href="/register?redirect=/sc/<%= sc._id %>" class="alert-link">Register</a> untuk melakukan transaksi.
+                        </div>
                     <% } %>
                 <% } %>
             </div>
@@ -133,9 +259,114 @@
     </div>
 </div>
 
-<div class="mt-4">
-    <h4><i class="fas fa-comments"></i> Ulasan (Fitur Belum Tersedia)</h4>
-    <p>Fitur ulasan akan segera hadir.</p>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bs5-lightbox@1.8.3/dist/index.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function initializeStarRating(containerId) {
+        const ratingStarsContainer = document.getElementById(containerId);
+        if (!ratingStarsContainer) return;
+
+        const labels = ratingStarsContainer.querySelectorAll('.star-label-detail, .star-label');
+        const radios = ratingStarsContainer.querySelectorAll('input[name="rating"]');
+
+        labels.forEach(label => {
+            label.addEventListener('mouseover', function () {
+                resetStars(labels);
+                highlightStars(this, labels);
+            });
+            label.addEventListener('mouseout', function () {
+                resetStars(labels);
+                const checkedRadio = ratingStarsContainer.querySelector('input[name="rating"]:checked');
+                if (checkedRadio) {
+                    highlightStars(ratingStarsContainer.querySelector('label[for="' + checkedRadio.id + '"]'), labels);
+                }
+            });
+            label.addEventListener('click', function() {
+                const radio = document.getElementById(this.htmlFor);
+                if(radio) {
+                    radio.checked = true;
+                    // Trigger change event if needed for any other logic
+                    const event = new Event('change', { bubbles: true });
+                    radio.dispatchEvent(event);
+                }
+                resetStars(labels);
+                highlightStars(this, labels);
+            });
+        });
+
+        function highlightStars(selectedLabel, allLabels) {
+            let current = selectedLabel;
+            while (current) {
+                current.classList.remove('text-secondary');
+                current.classList.add('text-warning');
+                current.querySelector('i').classList.remove('far');
+                current.querySelector('i').classList.add('fas');
+                current = current.previousElementSibling;
+                while(current && !current.matches('.star-label-detail, .star-label')) {
+                    current = current.previousElementSibling;
+                }
+            }
+        }
+
+        function resetStars(allLabels) {
+            allLabels.forEach(lbl => {
+                lbl.classList.remove('text-warning');
+                lbl.classList.add('text-secondary');
+                lbl.querySelector('i').classList.remove('fas');
+                lbl.querySelector('i').classList.add('far');
+            });
+        }
+        // Initial state for checked radio
+        const checkedRadioInit = ratingStarsContainer.querySelector('input[name="rating"]:checked');
+        if (checkedRadioInit) {
+            highlightStars(ratingStarsContainer.querySelector('label[for="' + checkedRadioInit.id + '"]'), labels);
+        }
+    }
+    initializeStarRating('ratingStarsDetail'); // For review form on detail page
+
+
+    // Bootstrap form validation
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            let rentalValid = true;
+            if (form.querySelector('input[name="orderType"][value="rent"]')) { // Check if it's a rental form
+                const rentalOptions = form.querySelectorAll('input[name="rentalOptionIndex"]');
+                const isOneChecked = Array.from(rentalOptions).some(radio => radio.checked);
+                const errorDiv = form.querySelector('#rentalOptionError');
+                if (!isOneChecked && rentalOptions.length > 0) {
+                    rentalValid = false;
+                    if(errorDiv) errorDiv.style.display = 'block';
+                } else {
+                    if(errorDiv) errorDiv.style.display = 'none';
+                }
+            }
+
+            if (!form.checkValidity() || !rentalValid) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+});
+</script>
+<style>
+    .star-label-detail, .star-label { cursor: pointer; transition: color 0.1s, transform 0.1s; }
+    .star-label-detail:hover, .star-label:hover,
+    .star-label-detail:hover ~ .star-label-detail, .star-label:hover ~ .star-label { 
+        color: #ffc107 !important; 
+    }
+    .star-label-detail:hover i, .star-label:hover i,
+    .star-label-detail:hover ~ .star-label-detail i, .star-label:hover ~ .star-label i { 
+         transform: scale(1.15); 
+    }
+    .description-box-detail { 
+        font-size: 1.05rem; 
+        line-height: 1.7; 
+    }
+    .transaction-option-box:hover {
+        background-color: #e9ecef !important;
+    }
+</style>

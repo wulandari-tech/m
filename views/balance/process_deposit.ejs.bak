@@ -1,0 +1,48 @@
+<h1><i class="fas fa-spinner fa-spin"></i> Memproses Pembayaran...</h1>
+<p>Anda akan diarahkan ke halaman pembayaran. Mohon tunggu.</p>
+<hr>
+<div id="snap-container" style="max-width: 600px; margin: 20px auto;"></div>
+
+<%# Script for Midtrans Snap is now included in main.ejs if midtransClientKey is set %>
+<%# The controller should pass midtransClientKey and midtransIsProduction to main.ejs for this page %>
+<script type="text/javascript">
+    function payWithSnap() {
+        if (typeof snap !== 'undefined' && '<%= snapToken %>') {
+            snap.pay('<%= snapToken %>', {
+                onSuccess: function(result){
+                    console.log('Midtrans Snap Success:', result);
+                    window.location.href = result.finish_redirect_url || "/api/orders/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=success";
+                },
+                onPending: function(result){
+                    console.log('Midtrans Snap Pending:', result);
+                    window.location.href = result.finish_redirect_url || "/api/orders/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=pending";
+                },
+                onError: function(result){
+                    console.log('Midtrans Snap Error:', result);
+                     window.location.href = result.finish_redirect_url || "/api/orders/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=error";
+                },
+                onClose: function(){
+                    console.log('Midtrans Snap: Customer closed the popup without finishing the payment');
+                    window.location.href = "/api/orders/status?order_id=CLOSED&transaction_status=closed";
+                }
+            });
+        } else {
+            console.error('Snap.js or Snap Token not available.');
+            // Fallback or error message if Snap is not loaded
+            const container = document.getElementById('snap-container');
+            if (container) {
+                container.innerHTML = '<p class="text-danger">Gagal memuat gateway pembayaran. Silakan coba lagi atau hubungi support.</p>';
+            }
+        }
+    }
+    
+    // Panggil fungsi pay saat halaman dimuat, setelah memastikan Snap.js telah terload
+    // Memberi sedikit delay jika Snap.js dimuat secara async
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(payWithSnap, 500);
+        });
+    } else {
+        setTimeout(payWithSnap, 500);
+    }
+</script>

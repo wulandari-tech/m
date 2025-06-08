@@ -1,18 +1,24 @@
-<h1><i class="fas fa-file-invoice-dollar"></i> Status Pembelian/Sewa SC</h1>
+<h1><i class="fas fa-file-invoice-dollar"></i> Status Pembayaran Pesanan</h1>
 <hr>
 <div class="alert alert-<%= alertType %>" role="alert">
-    <%= message %>
+    <h4 class="alert-heading">
+        <% if (alertType === 'success') { %> <i class="fas fa-check-circle"></i> Berhasil! <% } %>
+        <% else if (alertType === 'danger') { %> <i class="fas fa-times-circle"></i> Gagal! <% } %>
+        <% else if (alertType === 'warning') { %> <i class="fas fa-exclamation-triangle"></i> Perhatian! <% } %>
+        <% else { %> <i class="fas fa-info-circle"></i> Informasi <% } %>
+    </h4>
+    <p><%= message %></p>
 </div>
 
 <% if (order_id && order_id !== 'CLOSED') { %>
     <p>Order ID Transaksi Anda: <strong><%= order_id %></strong></p>
-    <p>Silakan periksa halaman "Pesanan Saya" untuk detail.</p>
+    <p>Silakan periksa halaman "Pesanan Saya" untuk detail lebih lanjut mengenai status pesanan dan unduhan (jika tersedia).</p>
 <% } else if (order_id === 'CLOSED') { %>
-    <p>Anda menutup jendela pembayaran sebelum menyelesaikan transaksi.</p>
+    <p>Anda menutup jendela pembayaran sebelum menyelesaikan transaksi. Tidak ada pesanan yang dibuat atau diproses.</p>
 <% } %>
 
-<div class="mt-3">
-    <a href="/sc-list" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> Lihat SC Lain</a>
-    <a href="/dashboard/orders" class="btn btn-info"><i class="fas fa-history"></i> Pesanan Saya</a>
-    <a href="/dashboard" class="btn btn-secondary"><i class="fas fa-tachometer-alt"></i> Kembali ke Dashboard</a>
+<div class="mt-4">
+    <a href="/sc-list" class="btn btn-primary"><i class="fas fa-shopping-cart me-1"></i> Lihat SC Lain</a>
+    <a href="/dashboard/orders" class="btn btn-info"><i class="fas fa-history me-1"></i> Pesanan Saya</a>
+    <a href="/dashboard" class="btn btn-secondary"><i class="fas fa-tachometer-alt me-1"></i> Kembali ke Dashboard</a>
 </div>

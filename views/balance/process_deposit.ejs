@@ -1,37 +1,77 @@
+<%# views/balance/process_deposit.ejs %>
+
 <h1><i class="fas fa-spinner fa-spin"></i> Memproses Pembayaran...</h1>
 <p>Anda akan diarahkan ke halaman pembayaran Midtrans. Mohon tunggu.</p>
 <hr>
-<div id="snap-container" style="max-width: 600px; margin: auto;"></div>
+<div id="snap-container" style="max-width: 600px; margin: 20px auto;"></div>
 
-<script type="text/javascript"
-    src="<%= midtransIsProduction ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' %>"
-    data-client-key="<%= clientKey %>"></script>
 <script type="text/javascript">
-    function pay() {
-        snap.pay('<%= snapToken %>', {
-            onSuccess: function(result){
-                console.log('success');
-                console.log(result);
-                window.location.href = result.finish_redirect_url || "/dashboard/deposit/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=success";
-            },
-            onPending: function(result){
-                console.log('pending');
-                console.log(result);
-                window.location.href = result.finish_redirect_url || "/dashboard/deposit/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=pending";
-            },
-            onError: function(result){
-                console.log('error');
-                console.log(result);
-                window.location.href = result.finish_redirect_url || "/dashboard/deposit/status?order_id=" + result.order_id + "&status_code=" + result.status_code + "&transaction_status=error";
-            },
-            onClose: function(){
-                console.log('customer closed the popup without finishing the payment');
-                // Anda bisa redirect ke halaman status atau dashboard
-                window.location.href = "/dashboard/deposit/status?order_id=CLOSED&transaction_status=closed";
+    function payWithSnap() {
+        if (typeof snap !== 'undefined' && '<%= snapToken %>') {
+            snap.pay('<%= snapToken %>', {
+                onSuccess: function(result){
+                    console.log('Midtrans Snap Success:', result);
+                    let redirectUrl = result.finish_redirect_url;
+                    if (!redirectUrl && result.order_id) { // Fallback jika finish_redirect_url tidak ada
+                        // Sesuaikan path ini dengan route status deposit atau order Anda
+                        if (result.order_id.startsWith('DEP-')) { // Asumsi ID deposit
+                            redirectUrl = `/dashboard/deposit/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=success`;
+                        } else { // Asumsi ID order
+                             redirectUrl = `/api/orders/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=success`;
+                        }
+                    }
+                    window.location.href = redirectUrl || '/dashboard';
+                },
+                onPending: function(result){
+                    console.log('Midtrans Snap Pending:', result);
+                    let redirectUrl = result.finish_redirect_url;
+                     if (!redirectUrl && result.order_id) {
+                        if (result.order_id.startsWith('DEP-')) {
+                            redirectUrl = `/dashboard/deposit/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=pending`;
+                        } else {
+                             redirectUrl = `/api/orders/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=pending`;
+                        }
+                    }
+                    window.location.href = redirectUrl || '/dashboard';
+                },
+                onError: function(result){
+                    console.log('Midtrans Snap Error:', result);
+                    let redirectUrl = result.finish_redirect_url;
+                     if (!redirectUrl && result.order_id) {
+                         if (result.order_id.startsWith('DEP-')) {
+                            redirectUrl = `/dashboard/deposit/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=error`;
+                        } else {
+                             redirectUrl = `/api/orders/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=error`;
+                        }
+                    } else if (!redirectUrl && !result.order_id) { // Error sebelum transaksi Midtrans dibuat
+                        redirectUrl = '/dashboard/deposit?error=midtrans_init_failed'; // Contoh
+                    }
+                    window.location.href = redirectUrl || '/dashboard/deposit';
+                },
+                onClose: function(){
+                    console.log('Midtrans Snap: Customer closed the popup without finishing the payment');
+                    // Tentukan redirect berdasarkan konteks (deposit atau order)
+                    // Untuk deposit, contoh:
+                    let closeRedirectUrl = '/dashboard/deposit/status?order_id=CLOSED&transaction_status=closed';
+                    // Jika ini juga digunakan untuk order, Anda perlu cara membedakannya
+                    // Mungkin dari session atau query param yang dikirim ke halaman process_deposit
+                    window.location.href = closeRedirectUrl;
+                }
+            });
+        } else {
+            console.error('Snap.js or Snap Token not available.');
+            const container = document.getElementById('snap-container');
+            if (container) {
+                container.innerHTML = '<div class="alert alert-danger" role="alert">Gagal memuat gateway pembayaran. Silakan coba lagi atau hubungi support. Pastikan koneksi internet Anda stabil.</div>';
             }
-        });
+        }
     }
-    // Panggil fungsi pay saat halaman dimuat
-    // Tunggu sebentar agar snap.js sempat terload
-    setTimeout(pay, 500);
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(payWithSnap, 300); // Sedikit delay agar snap.js benar-benar siap
+        });
+    } else {
+        setTimeout(payWithSnap, 300);
+    }
 </script>
