@@ -238,3 +238,48 @@ exports.getSellerStorePage = async (req, res) => {
         res.redirect('/');
     }
 };
+
+
+exports.getSellerStorePage = async (req, res) => {
+    try {
+        const seller = await User.findById(req.params.sellerId).select('-password -qrisBaseCode -qrisMerchantId -qrisApiKey');
+        if (!seller || (seller.role !== 'seller' && seller.role !== 'admin')) {
+            req.flash('error_msg', 'Seller tidak ditemukan.');
+            return res.redirect('/');
+        }
+
+        const sellerSc = await SourceCode.find({ seller: seller._id, status: 'approved' }).sort({ createdAt: -1 }).limit(12);
+        const storeUrl = `${req.protocol}://${req.get('host')}/seller/${seller._id}`;
+        
+        let logoToUsePath = null;
+        if (seller.profilePicture && seller.profilePicture !== '/images/default-avatar.png') {
+            if (seller.profilePicture.startsWith('http')) {
+                logoToUsePath = seller.profilePicture;
+            } else {
+                logoToUsePath = path.join(__dirname, '..', 'public', seller.profilePicture);
+            }
+        }
+
+        let qrCodeDataUrl;
+        if (logoToUsePath) {
+            qrCodeDataUrl = await qrisHelper.generateQrCodeWithLogo(storeUrl, logoToUsePath, 
+                { width: 220, margin: 1 }, 
+                { scale: 0.25, margin: 3 } 
+            );
+        } else {
+            qrCodeDataUrl = await QRCode.toDataURL(storeUrl, { errorCorrectionLevel: 'H', margin: 2, width: 220 });
+        }
+
+        res.render('user/seller_store', {
+            titlePage: `Toko ${seller.storeName || seller.name}`,
+            seller,
+            sellerSc,
+            qrCodeDataUrl,
+            storeUrl,
+            breadcrumbs: [{ name: 'Marketplace', url: '/' }, { name: `Toko ${seller.storeName || seller.name}`, active: true }]
+        });
+    } catch (error) {
+        req.flash('error_msg', 'Gagal memuat halaman toko seller.');
+        res.redirect('/');
+    }
+};

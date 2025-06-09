@@ -1,7 +1,11 @@
+const QRCode = require('qrcode');
+const Jimp = require('jimp');
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 const FormData = require('form-data');
-const QRCode = require('qrcode');
 const { Readable } = require('stream');
+
 
 async function bufferToStream(buffer) {
     const stream = new Readable();
@@ -45,7 +49,7 @@ async function uploadToCatbox(buffer) {
         form.append('reqtype', 'fileupload');
         const stream = await bufferToStream(buffer);
         form.append('fileToUpload', stream, {
-            filename: 'qris_image.png',
+            filename: 'qris_image_with_logo.png',
             contentType: 'image/png'
         });
 
@@ -53,7 +57,7 @@ async function uploadToCatbox(buffer) {
             headers: { ...form.getHeaders() },
             maxContentLength: Infinity,
             maxBodyLength: Infinity,
-            timeout: 15000
+            timeout: 20000
         });
 
         if (!response.data || typeof response.data !== 'string' || !response.data.startsWith('http')) {
@@ -154,12 +158,15 @@ async function createDynamicQRIS(amount, baseQrisCode) {
     const finalCrcValue = convertCRC16(finalQrisStringToCrc);
     const finalQrisString = finalQrisStringToCrc + "6304" + finalCrcValue;
 
-    const buffer = await QRCode.toBuffer(finalQrisString, {
-        errorCorrectionLevel: 'M', type: 'png', margin: 2, width: 300,
+    const qrBuffer = await QRCode.toBuffer(finalQrisString, {
+        errorCorrectionLevel: 'H',
+        type: 'png', 
+        margin: 2, 
+        width: 300,
         rendererOpts: { quality: 0.9 }
     });
 
-    const imageUrl = await uploadToCatbox(buffer);
+    const imageUrl = await uploadToCatbox(qrBuffer);
 
     return {
         transactionId: generateTransactionId(),
@@ -170,9 +177,93 @@ async function createDynamicQRIS(amount, baseQrisCode) {
     };
 }
 
+async function generateQrCodeWithLogo(dataString, logoPath, qrOptions = {}, logoOptions = {}) {
+    const defaultQrOptions = {
+        errorCorrectionLevel: 'H',
+        type: 'png',
+        margin: 2,
+        width: 256,
+        color: {
+            dark: "#000000FF",
+            light: "#FFFFFFFF"
+        },
+        ...qrOptions
+    };
+
+    const defaultLogoOptions = {
+        scale: 0.22,
+        margin: 4,
+        addBackground: true,
+        bgColor: '#FFFFFF',
+        ...logoOptions
+    };
+
+    try {
+        const qrBuffer = await QRCode.toBuffer(dataString, defaultQrOptions);
+        let qrImage = await Jimp.read(qrBuffer);
+        
+        if (!logoPath) {
+            const finalBufferNoLogo = await qrImage.getBufferAsync(Jimp.MIME_PNG);
+            return `data:image/png;base64,${finalBufferNoLogo.toString('base64')}`;
+        }
+
+        let logoImage;
+        let absoluteLogoPath = logoPath;
+
+        if (logoPath.startsWith('http')) {
+            logoImage = await Jimp.read(logoPath);
+        } else {
+            absoluteLogoPath = path.resolve(logoPath);
+            if (!fs.existsSync(absoluteLogoPath)) {
+                 const finalBufferNoLogo = await qrImage.getBufferAsync(Jimp.MIME_PNG);
+                 return `data:image/png;base64,${finalBufferNoLogo.toString('base64')}`;
+            }
+            logoImage = await Jimp.read(absoluteLogoPath);
+        }
+
+        const qrWidth = qrImage.getWidth();
+        const qrHeight = qrImage.getHeight(); 
+        const logoTargetWidth = qrWidth * defaultLogoOptions.scale;
+        logoImage.resize(logoTargetWidth, Jimp.AUTO);
+
+        const logoWidth = logoImage.getWidth();
+        const logoHeight = logoImage.getHeight();
+        
+        const positionX = (qrWidth - logoWidth) / 2;
+        const positionY = (qrHeight - logoHeight) / 2;
+
+        if (defaultLogoOptions.addBackground) {
+            const bgSize = Math.max(logoWidth, logoHeight) + (defaultLogoOptions.margin * 2);
+            const bgX = (qrWidth - bgSize) / 2;
+            const bgY = (qrHeight - bgSize) / 2;
+            
+             const whiteBg = new Jimp(bgSize, bgSize, defaultLogoOptions.bgColor, (err, image) => {
+                if (err) throw err;
+            });
+             qrImage.composite(whiteBg, bgX, bgY);
+        }
+
+        qrImage.composite(logoImage, positionX, positionY, {
+            mode: Jimp.BLEND_SOURCE_OVER,
+            opacitySource: 1,
+            opacityDest: 1
+        });
+
+        const finalBuffer = await qrImage.getBufferAsync(Jimp.MIME_PNG);
+        return `data:image/png;base64,${finalBuffer.toString('base64')}`;
+
+    } catch (error) {
+        try {
+            return await QRCode.toDataURL(dataString, defaultQrOptions);
+        } catch (qrError) {
+            return null;
+        }
+    }
+}
+
 async function checkQRISPaymentStatus(merchantId, apiKey) {
     if (!merchantId || !apiKey) {
-        throw new Error('Merchant ID and API Key are required for checking Okeconnect status.');
+        throw new Error('Merchant ID and API Key are required.');
     }
     const apiUrl = `https://gateway.okeconnect.com/api/mutasi/qris/${merchantId}/${apiKey}`;
     try {
@@ -180,14 +271,15 @@ async function checkQRISPaymentStatus(merchantId, apiKey) {
         if (response.data && response.data.data) {
             return { success: true, data: response.data.data };
         }
-        return { success: false, message: "No mutation data found or invalid response from Okeconnect.", data: [] };
+        return { success: false, message: "No mutation data from Okeconnect.", data: [] };
     } catch (error) {
-        return { success: false, message: `Failed to check QRIS status via Okeconnect: ${error.message}`, error: error };
+        return { success: false, message: `Failed to check QRIS status: ${error.message}`, error };
     }
 }
 
 module.exports = {
     createDynamicQRIS,
+    generateQrCodeWithLogo,
     checkQRISPaymentStatus,
     generateTransactionId
 };
