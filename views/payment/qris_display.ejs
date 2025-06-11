@@ -9,26 +9,26 @@ if (transactionType === 'deposit') {
 }
 %>
 
-<h1><i class="fas fa-qrcode"></i> <%= pageTitle %></h1>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-qrcode"></i> <%= pageTitle %></h1>
+<hr class="main-hr">
 
 <% if (qrisData && qrisData.qrImageUrl) { %>
     <div class="row justify-content-center">
         <div class="col-md-8 text-center">
             <div class="alert alert-info shadow-sm">
                 <p class="lead">Silakan scan Kode QRIS di bawah ini menggunakan aplikasi pembayaran favorit Anda.</p>
-                <p>Jumlah yang harus dibayar: <strong class="fs-5">Rp <%= parseInt(qrisData.amount).toLocaleString('id-ID') %></strong></p>
+                <p>Jumlah yang harus dibayar: <strong class="fs-4 text-glow-accent">Rp <%= parseInt(qrisData.amount).toLocaleString('id-ID') %></strong></p>
                 <% if (qrisData.expirationTime) { %>
                 <p>Kode QR ini akan kedaluwarsa pada: <br class="d-md-none"> <strong><%= new Date(qrisData.expirationTime).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'long'}) %></strong></p>
                 <% } %>
                 <p class="mt-2">ID Transaksi (simpan jika perlu): <br class="d-md-none"> <strong><%= qrisData.transactionId %></strong></p>
             </div>
 
-            <div class="my-3 text-center">
-                <img src="<%= qrisData.qrImageUrl %>" alt="QRIS Code" class="img-fluid border rounded shadow-sm" style="max-width: 300px; max-height: 300px;">
+            <div class="my-4 text-center p-3 bg-light rounded shadow-sm d-inline-block" style="border: 5px solid var(--nebula-cyan);">
+                <img src="<%= qrisData.qrImageUrl %>" alt="QRIS Code" class="img-fluid" style="max-width: 280px; max-height: 280px; display: block;">
             </div>
             
-            <p class="text-muted small user-select-all">String QRIS: <code><%= qrisData.qrString %></code></p>
+            <p class="text-muted small user-select-all mt-2">String QRIS: <code style="background-color: var(--nebula-bg-secondary); padding: 2px 5px; border-radius: 4px; color: var(--nebula-text-secondary);"><%= qrisData.qrString %></code></p>
             <p class="mt-3">
                 <strong>PENTING:</strong> Setelah melakukan pembayaran, status transaksi Anda akan diperbarui. 
                 <% if (transactionType === 'deposit') { %>
@@ -43,7 +43,7 @@ if (transactionType === 'deposit') {
                 <% } %>
             </p>
              <% if (typeof checkStatusUrl !== 'undefined' && checkStatusUrl) { %>
-                <form action="<%= checkStatusUrl %>" method="POST" class="mt-3">
+                <form action="<%= checkStatusUrl %>" method="POST" class="mt-3 needs-loading">
                     <input type="hidden" name="transactionId" value="<%= qrisData.transactionId %>">
                      <input type="hidden" name="orderId" value="<%= typeof orderId !== 'undefined' ? orderId : '' %>"> <%# This orderId is the Mongoose _id %>
                     <button type="submit" class="btn btn-outline-primary"><i class="fas fa-sync-alt"></i> Coba Cek Status Pembayaran Manual</button>
@@ -67,3 +67,7 @@ if (transactionType === 'deposit') {
     <% } %>
     <a href="/dashboard" class="btn btn-info"><i class="fas fa-tachometer-alt"></i> Ke Dashboard</a>
 </div>
+<style>
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
+    .text-glow-accent { text-shadow: 0 0 8px var(--accent-color); }
+</style>

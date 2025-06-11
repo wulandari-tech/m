@@ -1,7 +1,7 @@
-<h1><i class="fas fa-receipt"></i> Status Deposit</h1>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-receipt"></i> Status Deposit</h1>
+<hr class="main-hr">
 <div class="alert alert-<%= alertType %>" role="alert">
-    <%= message %>
+    <%- message %>
 </div>
 
 <% if (order_id && order_id !== 'CLOSED') { %>
@@ -12,6 +12,7 @@
 <% } %>
 
 <div class="mt-3">
-    <a href="/dashboard/deposit" class="btn btn-primary"><i class="fas fa-plus-circle"></i> Deposit Lagi</a>
+    <a href="/dashboard/deposit" class="btn btn-primary btn-glow"><i class="fas fa-plus-circle"></i> Deposit Lagi</a>
     <a href="/dashboard" class="btn btn-secondary"><i class="fas fa-tachometer-alt"></i> Kembali ke Dashboard</a>
 </div>
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>

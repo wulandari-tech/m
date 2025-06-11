@@ -1,29 +1,24 @@
-<%# views/balance/process_deposit.ejs %>
-
-<h1><i class="fas fa-spinner fa-spin"></i> Memproses Pembayaran...</h1>
+<h1 class="text-glow-primary"><i class="fas fa-spinner fa-spin"></i> Memproses Pembayaran...</h1>
 <p>Anda akan diarahkan ke halaman pembayaran Midtrans. Mohon tunggu.</p>
-<hr>
-<div id="snap-container" style="max-width: 600px; margin: 20px auto;"></div>
+<hr class="main-hr">
+<div id="snap-container" style="max-width: 600px; margin: 20px auto; padding: 20px; background-color: var(--nebula-card-bg); border-radius: var(--border-radius); box-shadow: var(--box-shadow-light);"></div>
 
 <script type="text/javascript">
     function payWithSnap() {
         if (typeof snap !== 'undefined' && '<%= snapToken %>') {
             snap.pay('<%= snapToken %>', {
                 onSuccess: function(result){
-                    console.log('Midtrans Snap Success:', result);
                     let redirectUrl = result.finish_redirect_url;
-                    if (!redirectUrl && result.order_id) { // Fallback jika finish_redirect_url tidak ada
-                        // Sesuaikan path ini dengan route status deposit atau order Anda
-                        if (result.order_id.startsWith('DEP-')) { // Asumsi ID deposit
+                    if (!redirectUrl && result.order_id) { 
+                        if (result.order_id.startsWith('DEP-')) { 
                             redirectUrl = `/dashboard/deposit/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=success`;
-                        } else { // Asumsi ID order
+                        } else { 
                              redirectUrl = `/api/orders/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=success`;
                         }
                     }
                     window.location.href = redirectUrl || '/dashboard';
                 },
                 onPending: function(result){
-                    console.log('Midtrans Snap Pending:', result);
                     let redirectUrl = result.finish_redirect_url;
                      if (!redirectUrl && result.order_id) {
                         if (result.order_id.startsWith('DEP-')) {
@@ -35,7 +30,6 @@
                     window.location.href = redirectUrl || '/dashboard';
                 },
                 onError: function(result){
-                    console.log('Midtrans Snap Error:', result);
                     let redirectUrl = result.finish_redirect_url;
                      if (!redirectUrl && result.order_id) {
                          if (result.order_id.startsWith('DEP-')) {
@@ -43,18 +37,17 @@
                         } else {
                              redirectUrl = `/api/orders/status?order_id=${result.order_id}&status_code=${result.status_code}&transaction_status=error`;
                         }
-                    } else if (!redirectUrl && !result.order_id) { // Error sebelum transaksi Midtrans dibuat
-                        redirectUrl = '/dashboard/deposit?error=midtrans_init_failed'; // Contoh
+                    } else if (!redirectUrl && !result.order_id) { 
+                        redirectUrl = '/dashboard/deposit?error=midtrans_init_failed'; 
                     }
                     window.location.href = redirectUrl || '/dashboard/deposit';
                 },
                 onClose: function(){
-                    console.log('Midtrans Snap: Customer closed the popup without finishing the payment');
-                    // Tentukan redirect berdasarkan konteks (deposit atau order)
-                    // Untuk deposit, contoh:
                     let closeRedirectUrl = '/dashboard/deposit/status?order_id=CLOSED&transaction_status=closed';
-                    // Jika ini juga digunakan untuk order, Anda perlu cara membedakannya
-                    // Mungkin dari session atau query param yang dikirim ke halaman process_deposit
+                    const contextPath = window.location.pathname;
+                    if (contextPath.includes('/api/orders')) { // Asumsi jika path untuk order
+                         closeRedirectUrl = `/api/orders/status?order_id=CLOSED&transaction_status=closed`;
+                    }
                     window.location.href = closeRedirectUrl;
                 }
             });
@@ -68,10 +61,9 @@
     }
     
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(payWithSnap, 300); // Sedikit delay agar snap.js benar-benar siap
-        });
+        document.addEventListener('DOMContentLoaded', function() { setTimeout(payWithSnap, 300); });
     } else {
         setTimeout(payWithSnap, 300);
     }
 </script>
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>

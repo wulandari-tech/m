@@ -1,156 +1,349 @@
-<h1><i class="fas fa-plus-circle"></i> Tambah Source Code Baru</h1>
-<hr>
-<form action="/api/sc" method="POST" id="addScForm" enctype="multipart/form-data">
-    <div class="mb-3">
-        <label for="title" class="form-label">Judul Source Code <span class="text-danger">*</span></label>
-        <input type="text" class="form-control" id="title" name="title" value="<%= typeof title != 'undefined' ? title : '' %>" required>
-    </div>
-    <div class="mb-3">
-        <label for="description" class="form-label">Deskripsi Lengkap <span class="text-danger">*</span></label>
-        <textarea class="form-control" id="description" name="description" rows="5" required><%= typeof description != 'undefined' ? description : '' %></textarea>
-    </div>
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label for="category" class="form-label">Kategori <span class="text-danger">*</span></label>
-            <select class="form-select" id="category" name="category" required>
-                <option value="">Pilih Kategori...</option>
-                <option value="Web PHP" <%= (typeof category != 'undefined' && category === 'Web PHP') ? 'selected' : '' %>>Web PHP</option>
-                <option value="Aplikasi Android" <%= (typeof category != 'undefined' && category === 'Aplikasi Android') ? 'selected' : '' %>>Aplikasi Android</option>
-                <option value="Script Python" <%= (typeof category != 'undefined' && category === 'Script Python') ? 'selected' : '' %>>Script Python</option>
-                <option value="Template HTML" <%= (typeof category != 'undefined' && category === 'Template HTML') ? 'selected' : '' %>>Template HTML</option>
-                <option value="Bot Script" <%= (typeof category != 'undefined' && category === 'Bot Script') ? 'selected' : '' %>>Bot Script</option>
-                <option value="Game Unity" <%= (typeof category != 'undefined' && category === 'Game Unity') ? 'selected' : '' %>>Game Unity</option>
-                <option value="Lainnya" <%= (typeof category != 'undefined' && category === 'Lainnya') ? 'selected' : '' %>>Lainnya</option>
-            </select>
-        </div>
-        <div class="col-md-6 mb-3">
-            <label for="tags" class="form-label">Tags (pisahkan dengan koma)</label>
-            <input type="text" class="form-control" id="tags" name="tags" value="<%= typeof tags != 'undefined' ? tags : '' %>" placeholder="e.g. php, laravel, e-commerce">
-        </div>
-    </div>
-    <div class="row">
-         <div class="col-md-6 mb-3">
-            <label for="techStack" class="form-label">Teknologi Utama (pisahkan dengan koma)</label>
-            <input type="text" class="form-control" id="techStack" name="techStack" value="<%= typeof techStack != 'undefined' ? techStack : '' %>" placeholder="e.g. PHP 8, MySQL, Bootstrap 5">
-        </div>
-        <div class="col-md-6 mb-3">
-            <label for="demoUrl" class="form-label">URL Demo (Jika ada)</label>
-            <input type="url" class="form-control" id="demoUrl" name="demoUrl" value="<%= typeof demoUrl != 'undefined' ? demoUrl : '' %>" placeholder="https://demo.example.com">
-        </div>
-    </div>
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
 
-    <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="is_for_rent_only" name="is_for_rent_only" <%= (typeof is_for_rent_only != 'undefined' && is_for_rent_only) ? 'checked' : '' %>>
-        <label class="form-check-label" for="is_for_rent_only">
-            Source Code ini hanya untuk disewa (tidak dijual)
-        </label>
-    </div>
-    
-    <div class="mb-3" id="price_buy_container">
-        <label for="price_buy_str" class="form-label">Harga Jual (Rp)</label>
-        <input type="number" class="form-control" id="price_buy_str" name="price_buy_str" min="0" step="1000" value="<%= typeof price_buy_str != 'undefined' ? price_buy_str : '' %>">
-    </div>
+<h1 class="text-glow-primary"><i class="fas fa-plus-circle"></i> Tambah Produk Baru</h1>
+<hr class="main-hr">
+<form action="/api/sc" method="POST" id="addScForm" enctype="multipart/form-data" class="needs-validation" novalidate>
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label for="title" class="form-label">Judul Produk <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="title" name="title" value="<%= typeof title != 'undefined' ? title : '' %>" required minlength="5">
+                <div class="invalid-feedback">Judul minimal 5 karakter.</div>
+            </div>
+             <div class="mb-3">
+                <label for="productType" class="form-label">Tipe Produk <span class="text-danger">*</span></label>
+                <select class="form-select" id="productType" name="productType" required>
+                    <option value="source_code" <%= (typeof productType === 'undefined' || productType === 'source_code') ? 'selected' : '' %>>Source Code (File Digital)</option>
+                    <option value="panel_service" <%= (typeof productType !== 'undefined' && productType === 'panel_service') ? 'selected' : '' %>>Layanan Panel (Pterodactyl)</option>
+                </select>
+                 <div class="invalid-feedback">Pilih tipe produk.</div>
+            </div>
 
-    <h4><i class="fas fa-calendar-alt"></i> Opsi Sewa</h4>
-    <div id="rental_options_container">
-        <% if (typeof rental_options_data != 'undefined' && rental_options_data.length > 0) { %>
-            <% rental_options_data.forEach((opt, index) => { %>
-                <div class="row rental-option-item mb-2">
-                    <div class="col-md-5">
-                        <label class="form-label">Durasi Sewa</label>
-                        <select name="rental_duration[]" class="form-select">
-                            <option value="1 Minggu" <%= opt.duration === '1 Minggu' ? 'selected' : '' %>>1 Minggu</option>
-                            <option value="1 Bulan" <%= opt.duration === '1 Bulan' ? 'selected' : '' %>>1 Bulan</option>
-                            <option value="3 Bulan" <%= opt.duration === '3 Bulan' ? 'selected' : '' %>>3 Bulan</option>
-                            <option value="6 Bulan" <%= opt.duration === '6 Bulan' ? 'selected' : '' %>>6 Bulan</option>
-                            <option value="1 Tahun" <%= opt.duration === '1 Tahun' ? 'selected' : '' %>>1 Tahun</option>
-                        </select>
+            <div id="commonFields">
+                <div class="mb-3">
+                    <label for="description" class="form-label">Deskripsi Lengkap <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="description" name="description" rows="5" required minlength="20"><%= typeof description != 'undefined' ? description : '' %></textarea>
+                    <div class="invalid-feedback">Deskripsi minimal 20 karakter.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="category" class="form-label">Kategori <span class="text-danger">*</span></label>
+                    <select class="form-select" id="category" name="category" required>
+                        <option value="">Pilih Kategori...</option>
+                        <option value="Web PHP" <%= (typeof category != 'undefined' && category === 'Web PHP') ? 'selected' : '' %>>Web PHP</option>
+                        <option value="Aplikasi Android" <%= (typeof category != 'undefined' && category === 'Aplikasi Android') ? 'selected' : '' %>>Aplikasi Android</option>
+                        <option value="Script Python" <%= (typeof category != 'undefined' && category === 'Script Python') ? 'selected' : '' %>>Script Python</option>
+                        <option value="Template HTML" <%= (typeof category != 'undefined' && category === 'Template HTML') ? 'selected' : '' %>>Template HTML</option>
+                        <option value="Bot Script" <%= (typeof category != 'undefined' && category === 'Bot Script') ? 'selected' : '' %>>Bot Script</option>
+                        <option value="Game Unity" <%= (typeof category != 'undefined' && category === 'Game Unity') ? 'selected' : '' %>>Game Unity</option>
+                        <option value="Plugin Wordpress" <%= (typeof category != 'undefined' && category === 'Plugin Wordpress') ? 'selected' : '' %>>Plugin Wordpress</option>
+                        <option value="Aplikasi Desktop" <%= (typeof category != 'undefined' && category === 'Aplikasi Desktop') ? 'selected' : '' %>>Aplikasi Desktop</option>
+                        <option value="Desain Grafis" <%= (typeof category != 'undefined' && category === 'Desain Grafis') ? 'selected' : '' %>>Desain Grafis (PSD, AI, dll)</option>
+                        <option value="Hosting & Server Panel" <%= (typeof category != 'undefined' && category === 'Hosting & Server Panel') ? 'selected' : '' %>>Hosting & Server Panel</option>
+                        <option value="Lainnya" <%= (typeof category != 'undefined' && category === 'Lainnya') ? 'selected' : '' %>>Lainnya</option>
+                    </select>
+                    <div class="invalid-feedback">Pilih kategori.</div>
+                </div>
+            </div>
+
+            <div id="sourceCodeFields">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="tags" class="form-label">Tags (pisahkan dengan koma)</label>
+                        <input type="text" class="form-control" id="tags" name="tags" value="<%= typeof tags != 'undefined' ? tags : '' %>" placeholder="e.g. php, laravel, e-commerce">
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label">Harga Sewa (Rp)</label>
-                        <input type="number" name="rental_price[]" class="form-control" min="0" step="1000" value="<%= opt.price %>">
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-danger btn-sm remove-rental-option"><i class="fas fa-trash"></i></button>
+                    <div class="col-md-6 mb-3">
+                        <label for="techStack" class="form-label">Teknologi Utama (pisahkan dengan koma)</label>
+                        <input type="text" class="form-control" id="techStack" name="techStack" value="<%= typeof techStack != 'undefined' ? techStack : '' %>" placeholder="e.g. PHP 8, MySQL, Bootstrap 5">
                     </div>
                 </div>
-            <% }) %>
-        <% } %>
-    </div>
-    <button type="button" id="add_rental_option" class="btn btn-outline-primary btn-sm mb-3"><i class="fas fa-plus"></i> Tambah Opsi Sewa</button>
-    
-    <div class="mb-3">
-        <label for="sc_file" class="form-label">File Source Code (.zip, .txt, dll) <span class="text-danger">*</span></label>
-        <input type="file" class="form-control" id="sc_file" name="sc_file" accept=".zip,.txt,application/zip,application/x-zip-compressed,text/plain,application/octet-stream" required>
-        <small class="form-text text-muted">Maksimal 50MB.</small>
-    </div>
-    <div class="mb-3">
-        <label for="screenshots" class="form-label">Screenshot (Maks. 5 file, @5MB)</label>
-        <input type="file" class="form-control" id="screenshots" name="screenshots" multiple accept="image/*">
-    </div>
+                <div class="mb-3">
+                    <label for="demoUrl" class="form-label">URL Demo (Jika ada)</label>
+                    <input type="url" class="form-control" id="demoUrl" name="demoUrl" value="<%= typeof demoUrl != 'undefined' ? demoUrl : '' %>" placeholder="https://demo.example.com">
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="is_for_rent_only" name="is_for_rent_only" <%= (typeof is_for_rent_only != 'undefined' && (is_for_rent_only === 'on' || is_for_rent_only === true)) ? 'checked' : '' %>>
+                    <label class="form-check-label" for="is_for_rent_only">
+                        Source Code ini hanya untuk disewa (tidak dijual)
+                    </label>
+                </div>
+                <div class="mb-3" id="price_buy_container">
+                    <label for="price_buy_str" class="form-label">Harga Jual (Rp)</label>
+                    <input type="number" class="form-control" id="price_buy_str" name="price_buy_str" min="0" step="1" value="<%= typeof price_buy_str != 'undefined' ? price_buy_str : '' %>" placeholder="Min 1, 0 untuk gratis">
+                    <div class="invalid-feedback">Harga jual harus diisi jika SC dijual.</div>
+                </div>
+                <h4 class="mt-4 text-glow-accent"><i class="fas fa-calendar-alt"></i> Opsi Sewa</h4>
+                <div id="rental_options_container">
+                    <% if (typeof rental_options_data != 'undefined' && rental_options_data.length > 0) { %>
+                        <% rental_options_data.forEach((opt, index) => { %>
+                            <div class="row rental-option-item mb-2 align-items-center">
+                                <div class="col-md-5 mb-2 mb-md-0">
+                                    <label class="form-label visually-hidden">Durasi Sewa</label>
+                                    <select name="rental_duration[]" class="form-select">
+                                        <option value="">Pilih Durasi...</option>
+                                        <option value="1 Minggu" <%= opt.duration === '1 Minggu' ? 'selected' : '' %>>1 Minggu</option>
+                                        <option value="1 Bulan" <%= opt.duration === '1 Bulan' ? 'selected' : '' %>>1 Bulan</option>
+                                        <option value="3 Bulan" <%= opt.duration === '3 Bulan' ? 'selected' : '' %>>3 Bulan</option>
+                                        <option value="6 Bulan" <%= opt.duration === '6 Bulan' ? 'selected' : '' %>>6 Bulan</option>
+                                        <option value="1 Tahun" <%= opt.duration === '1 Tahun' ? 'selected' : '' %>>1 Tahun</option>
+                                    </select>
+                                    <div class="invalid-feedback">Pilih durasi sewa.</div>
+                                </div>
+                                <div class="col-md-5 mb-2 mb-md-0">
+                                    <label class="form-label visually-hidden">Harga Sewa (Rp)</label>
+                                    <input type="number" name="rental_price[]" class="form-control" placeholder="Harga Sewa (Min 0)" min="0" step="1" value="<%= opt.price %>">
+                                    <div class="invalid-feedback">Harga sewa harus diisi.</div>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center justify-content-md-start justify-content-end">
+                                    <button type="button" class="btn btn-danger btn-sm remove-rental-option"><i class="fas fa-trash"></i> Hapus</button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } %>
+                </div>
+                <button type="button" id="add_rental_option" class="btn btn-outline-primary btn-sm mb-3"><i class="fas fa-plus"></i> Tambah Opsi Sewa</button>
+                <div id="rental-validation-feedback" class="invalid-feedback d-block mb-2" style="display:none;">Minimal satu opsi sewa atau harga jual harus diisi untuk tipe Source Code.</div>
+                <div class="mb-3">
+                    <label for="sc_file" class="form-label">File Source Code (.zip, .rar, .7z)</label>
+                    <input type="file" class="form-control" id="sc_file" name="sc_file" accept=".zip,.rar,.7z,application/zip,application/x-rar-compressed,application/x-7z-compressed,application/octet-stream">
+                    <small class="form-text text-muted">Maksimal 50MB. Wajib jika tipe produk adalah Source Code.</small>
+                    <div class="invalid-feedback">File source code harus diupload untuk tipe produk Source Code.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="screenshots" class="form-label">Screenshot (Maks. 5 file, @5MB per file)</label>
+                    <input type="file" class="form-control" id="screenshots" name="screenshots" multiple accept="image/png, image/jpeg, image/gif, image/webp">
+                    <small class="form-text text-muted">Format: JPG, PNG, GIF, WEBP.</small>
+                </div>
+            </div>
 
-    <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Simpan Source Code</button>
-    <a href="/dashboard" class="btn btn-secondary"><i class="fas fa-times"></i> Batal</a>
+            <div id="panelServiceFields" style="display:none;">
+                <h5 class="mt-3 text-info"><i class="fas fa-server me-1"></i> Spesifikasi Layanan Panel</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="panelRamMB" class="form-label">RAM Panel (MB)</label>
+                        <input type="number" class="form-control" id="panelRamMB" name="panelRamMB" min="0" placeholder="Contoh: 1024 (1GB), 0 Unlimited" value="<%= typeof panelRamMB !== 'undefined' ? panelRamMB : '' %>">
+                        <div class="invalid-feedback">RAM Panel harus diisi (angka >= 0).</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="panelDiskMB" class="form-label">Disk Panel (MB)</label>
+                        <input type="number" class="form-control" id="panelDiskMB" name="panelDiskMB" min="0" placeholder="Contoh: 5120 (5GB), 0 Unlimited" value="<%= typeof panelDiskMB !== 'undefined' ? panelDiskMB : '' %>">
+                        <div class="invalid-feedback">Disk Panel harus diisi (angka >= 0).</div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="panelCpuPercentage" class="form-label">CPU Panel (%)</label>
+                        <input type="number" class="form-control" id="panelCpuPercentage" name="panelCpuPercentage" min="0" placeholder="Contoh: 100 (1 core), 0 Unlimited" value="<%= typeof panelCpuPercentage !== 'undefined' ? panelCpuPercentage : '' %>">
+                        <div class="invalid-feedback">CPU Panel harus diisi (angka >= 0).</div>
+                    </div>
+                </div>
+                 <div class="mb-3">
+                    <label for="panel_price_add" class="form-label">Harga Layanan Panel (Rp)</label>
+                    <input type="number" class="form-control" id="panel_price_add" name="panel_price" min="0" max="100000" step="1" placeholder="Harga 0 - 100.000. Min 1, 0 untuk gratis" value="<%= (typeof productType !== 'undefined' && productType === 'panel_service' && typeof panel_price !== 'undefined') ? panel_price : '' %>">
+                    <div class="invalid-feedback">Harga layanan panel antara 0 - 100.000.</div>
+                </div>
+                <p class="text-muted small">Pastikan pengaturan Pterodactyl (URL, API Key Aplikasi, Nest ID Default, Egg ID Default, Location ID Default) sudah benar di halaman <a href="/dashboard/profile#api-settings" target="_blank">Edit Profil & Toko</a> Anda.</p>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <a href="/dashboard/my-sc" class="btn btn-secondary"><i class="fas fa-times"></i> Batal</a>
+            <button type="submit" class="btn btn-success btn-glow"><i class="fas fa-save"></i> Simpan Produk</button>
+        </div>
+    </div>
 </form>
-
+<style>
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
+    .text-glow-accent { text-shadow: 0 0 8px var(--accent-color); }
+</style>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const rentOnlyCheckbox = document.getElementById('is_for_rent_only');
+        const addScForm = document.getElementById('addScForm');
+        const productTypeSelect = document.getElementById('productType');
+        const sourceCodeFieldsDiv = document.getElementById('sourceCodeFields');
+        const panelServiceFieldsDiv = document.getElementById('panelServiceFields');
+        const scFileInput = document.getElementById('sc_file');
+        const panelRamInput = document.getElementById('panelRamMB');
+        const panelDiskInput = document.getElementById('panelDiskMB');
+        const panelCpuInput = document.getElementById('panelCpuPercentage');
+        const panelPriceInput = document.getElementById('panel_price_add');
         const priceBuyContainer = document.getElementById('price_buy_container');
-        const priceBuyInput = document.getElementById('price_buy_str');
-
-        function togglePriceBuy() {
-            if (rentOnlyCheckbox.checked) {
-                priceBuyContainer.style.display = 'none';
-                priceBuyInput.removeAttribute('required');
-                priceBuyInput.value = ''; 
-            } else {
-                priceBuyContainer.style.display = 'block';
-                priceBuyInput.setAttribute('required', 'required');
-            }
-        }
-        if(rentOnlyCheckbox) {
-            rentOnlyCheckbox.addEventListener('change', togglePriceBuy);
-            togglePriceBuy(); 
-        }
-
+        const priceBuyInputOriginal = document.getElementById('price_buy_str');
+        const rentOnlyCheckbox = document.getElementById('is_for_rent_only');
         const rentalOptionsContainer = document.getElementById('rental_options_container');
         const addRentalButton = document.getElementById('add_rental_option');
+        const rentalValidationFeedback = document.getElementById('rental-validation-feedback');
+        const commonFieldsDiv = document.getElementById('commonFields');
+        const categoryInput = document.getElementById('category');
+        const descriptionInput = document.getElementById('description');
+
+        const screenshotsInput = document.getElementById('screenshots');
+        const tagsInput = document.getElementById('tags');
+        const techStackInput = document.getElementById('techStack');
+        const demoUrlInput = document.getElementById('demoUrl');
+
+        function setRequired(element, required) {
+            if (element) {
+                if (required) element.setAttribute('required', 'required');
+                else element.removeAttribute('required');
+            }
+        }
+
+        function toggleProductFields() {
+            const isPanelService = productTypeSelect.value === 'panel_service';
+
+            sourceCodeFieldsDiv.style.display = isPanelService ? 'none' : 'block';
+            panelServiceFieldsDiv.style.display = isPanelService ? 'block' : 'none';
+
+            setRequired(scFileInput, !isPanelService);
+            setRequired(priceBuyInputOriginal, !isPanelService && !rentOnlyCheckbox.checked && rentalOptionsContainer.children.length === 0);
+            setRequired(panelRamInput, isPanelService);
+            setRequired(panelDiskInput, isPanelService);
+            setRequired(panelCpuInput, isPanelService);
+            setRequired(panelPriceInput, isPanelService);
+            
+            [rentOnlyCheckbox, rentalOptionsContainer, addRentalButton, screenshotsInput, tagsInput, techStackInput, demoUrlInput].forEach(el => {
+                if(el) el.disabled = isPanelService;
+            });
+             Array.from(rentalOptionsContainer.querySelectorAll('select, input, button')).forEach(el => el.disabled = isPanelService);
+
+
+            if (isPanelService) {
+                priceBuyInputOriginal.value = '';
+                rentOnlyCheckbox.checked = false;
+                while (rentalOptionsContainer.firstChild) {
+                    rentalOptionsContainer.removeChild(rentalOptionsContainer.firstChild);
+                }
+            } else {
+                panelPriceInput.value = '';
+                validatePricingOptions();
+            }
+        }
+
+        function validatePricingOptions() {
+            if (productTypeSelect.value === 'panel_service') {
+                rentalValidationFeedback.style.display = 'none';
+                priceBuyInputOriginal.classList.remove('is-invalid');
+                setRequired(priceBuyInputOriginal, false);
+                Array.from(rentalOptionsContainer.querySelectorAll('select, input[type="number"]')).forEach(el => setRequired(el, false));
+                return true;
+            }
+            const hasPriceBuy = !rentOnlyCheckbox.checked && priceBuyInputOriginal.value !== '' && parseFloat(priceBuyInputOriginal.value) >= 0;
+            const hasRentalOptions = rentalOptionsContainer.children.length > 0;
+
+            if (!hasPriceBuy && !hasRentalOptions) {
+                rentalValidationFeedback.style.display = 'block';
+                if (!rentOnlyCheckbox.checked) {
+                    priceBuyInputOriginal.classList.add('is-invalid');
+                    setRequired(priceBuyInputOriginal, true);
+                }
+                return false;
+            } else {
+                rentalValidationFeedback.style.display = 'none';
+                priceBuyInputOriginal.classList.remove('is-invalid');
+                setRequired(priceBuyInputOriginal, !rentOnlyCheckbox.checked && !hasRentalOptions);
+                Array.from(rentalOptionsContainer.querySelectorAll('select, input[type="number"]')).forEach(el => {
+                    setRequired(el, hasRentalOptions);
+                });
+                return true;
+            }
+        }
+
+        if(rentOnlyCheckbox) {
+            rentOnlyCheckbox.addEventListener('change', togglePriceBuy);
+        }
+        if(priceBuyInputOriginal){
+            priceBuyInputOriginal.addEventListener('input', validatePricingOptions);
+        }
+         function togglePriceBuy() {
+            if (productTypeSelect.value === 'panel_service') return;
+            if (rentOnlyCheckbox.checked) {
+                priceBuyContainer.style.display = 'none';
+                priceBuyInputOriginal.value = '';
+            } else {
+                priceBuyContainer.style.display = 'block';
+            }
+            validatePricingOptions();
+        }
 
         if(addRentalButton) {
             addRentalButton.addEventListener('click', function() {
+                if (productTypeSelect.value === 'panel_service') return;
                 const newItem = document.createElement('div');
-                newItem.classList.add('row', 'rental-option-item', 'mb-2');
+                newItem.classList.add('row', 'rental-option-item', 'mb-2', 'align-items-center');
                 newItem.innerHTML = `
-                    <div class="col-md-5">
-                        <label class="form-label visually-hidden">Durasi Sewa</label>
+                    <div class="col-md-5 mb-2 mb-md-0">
                         <select name="rental_duration[]" class="form-select" required>
                             <option value="">Pilih Durasi...</option>
-                            <option value="1 Minggu">1 Minggu</option>
-                            <option value="1 Bulan">1 Bulan</option>
-                            <option value="3 Bulan">3 Bulan</option>
-                            <option value="6 Bulan">6 Bulan</option>
+                            <option value="1 Minggu">1 Minggu</option><option value="1 Bulan">1 Bulan</option>
+                            <option value="3 Bulan">3 Bulan</option><option value="6 Bulan">6 Bulan</option>
                             <option value="1 Tahun">1 Tahun</option>
                         </select>
+                        <div class="invalid-feedback">Pilih durasi sewa.</div>
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label visually-hidden">Harga Sewa (Rp)</label>
-                        <input type="number" name="rental_price[]" class="form-control" placeholder="Harga Sewa" min="0" step="1000" required>
+                    <div class="col-md-5 mb-2 mb-md-0">
+                        <input type="number" name="rental_price[]" class="form-control" placeholder="Harga Sewa (Min 0)" min="0" step="1" required>
+                        <div class="invalid-feedback">Harga sewa harus diisi.</div>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
+                    <div class="col-md-2 d-flex align-items-center justify-content-md-start justify-content-end">
                         <button type="button" class="btn btn-danger btn-sm remove-rental-option"><i class="fas fa-trash"></i> Hapus</button>
                     </div>
                 `;
                 rentalOptionsContainer.appendChild(newItem);
+                validatePricingOptions();
             });
         }
 
         if(rentalOptionsContainer) {
             rentalOptionsContainer.addEventListener('click', function(e) {
+                if (productTypeSelect.value === 'panel_service') return;
                 if (e.target.classList.contains('remove-rental-option') || e.target.closest('.remove-rental-option')) {
                     e.target.closest('.rental-option-item').remove();
+                    validatePricingOptions();
                 }
             });
+        }
+        
+        if (productTypeSelect) {
+            productTypeSelect.addEventListener('change', toggleProductFields);
+            toggleProductFields();
+        } else {
+            validatePricingOptions();
+            togglePriceBuy();
+        }
+
+        if(addScForm){
+            addScForm.addEventListener('submit', function(event) {
+                let finalValidation = true;
+                if (productTypeSelect.value === 'source_code') {
+                    if (scFileInput.files.length === 0) {
+                        scFileInput.setAttribute('required', 'required');
+                         finalValidation = false;
+                    } else {
+                        scFileInput.removeAttribute('required');
+                    }
+                    if(!validatePricingOptions()){
+                         finalValidation = false;
+                    }
+                } else if (productTypeSelect.value === 'panel_service') {
+                    scFileInput.removeAttribute('required');
+                    priceBuyInputOriginal.removeAttribute('required');
+                     Array.from(rentalOptionsContainer.querySelectorAll('select, input[type="number"]')).forEach(el => el.removeAttribute('required'));
+
+                     if (!panelPriceInput.value || parseFloat(panelPriceInput.value) < 0 || parseFloat(panelPriceInput.value) > 100000) {
+                        panelPriceInput.classList.add('is-invalid');
+                        finalValidation = false;
+                    } else {
+                        panelPriceInput.classList.remove('is-invalid');
+                    }
+                    if(!panelRamInput.value || parseInt(panelRamInput.value) < 0) { panelRamInput.classList.add('is-invalid'); finalValidation = false;} else { panelRamInput.classList.remove('is-invalid');}
+                    if(!panelDiskInput.value || parseInt(panelDiskInput.value) < 0) { panelDiskInput.classList.add('is-invalid'); finalValidation = false;} else { panelDiskInput.classList.remove('is-invalid');}
+                    if(!panelCpuInput.value || parseInt(panelCpuInput.value) < 0) { panelCpuInput.classList.add('is-invalid'); finalValidation = false;} else { panelCpuInput.classList.remove('is-invalid');}
+
+                }
+
+                if (!addScForm.checkValidity() || !finalValidation) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                addScForm.classList.add('was-validated');
+            }, false);
         }
     });
 </script>

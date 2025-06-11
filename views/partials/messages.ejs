@@ -1,29 +1,29 @@
 <% if (typeof errors !== 'undefined' && errors.length > 0) { %>
     <% errors.forEach(function(error) { %>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <%= error.msg %>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i><%= error.msg %>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     <% }); %>
 <% } %>
 
 <% if (success_msg && success_msg != '') { %>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <%= success_msg %>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2"></i><%= success_msg %>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <% } %>
 
 <% if (error_msg && error_msg != '') { %>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= error_msg %>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="fas fa-times-circle me-2"></i><%= error_msg %>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <% } %>
 
 <% if (error && error != '') { %> 
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <%= error %>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+         <i class="fas fa-ban me-2"></i><%= error %>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <% } %>

@@ -132,44 +132,9 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body text-center">
-        <% if (qrCodeDataUrl) { %>
-            <img src="<%= qrCodeDataUrl %>" alt="QR Code Toko <%= seller.storeName || seller.name %>" class="img-fluid rounded border p-2 shadow-sm" style="max-width: 100%; height: auto;">
-            <p class="mt-2 small text-muted">Scan kode QR ini dengan ponsel Anda untuk mengunjungi halaman toko.</p>
-        <% } else { %>
-            <p class="text-danger">Gagal membuat kode QR untuk toko ini.</p>
-        <% } %>
+        <img src="<%= qrCodeDataUrl %>" alt="QR Code Toko <%= seller.storeName || seller.name %>" class="img-fluid rounded border p-2">
+        <p class="mt-2 small text-muted">Scan kode QR ini dengan ponsel Anda untuk mengunjungi halaman toko.</p>
       </div>
     </div>
   </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.copy-link-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetInputSelector = this.dataset.targetInput;
-            const feedbackDivSelector = this.dataset.feedbackDiv;
-            const linkInput = document.querySelector(targetInputSelector);
-            const feedbackDiv = document.querySelector(feedbackDivSelector);
-
-            if (linkInput && feedbackDiv) {
-                linkInput.select();
-                linkInput.setSelectionRange(0, 99999);
-                try {
-                    document.execCommand('copy');
-                    feedbackDiv.textContent = 'Link berhasil disalin ke clipboard!';
-                    feedbackDiv.className = 'text-success small';
-                    feedbackDiv.style.display = 'block';
-                    setTimeout(() => {
-                        feedbackDiv.style.display = 'none';
-                    }, 2500);
-                } catch (err) {
-                    feedbackDiv.textContent = 'Gagal menyalin link.';
-                    feedbackDiv.className = 'text-danger small';
-                    feedbackDiv.style.display = 'block';
-                }
-            }
-        });
-    });
-});
-</script>

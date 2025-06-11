@@ -1,36 +1,41 @@
 <%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
 
-<h1><i class="fas fa-chart-line me-2"></i>Analitik Penjualan Saya</h1>
+<h1 class="text-glow-primary"><i class="fas fa-chart-line me-2"></i>Analitik Penjualan Saya</h1>
 <p>Pantau performa penjualan source code Anda.</p>
-<hr>
+<hr class="main-hr">
 
-<div class="row mb-3 align-items-end">
-    <div class="col-md-4">
-        <label for="periodFilter" class="form-label">Pilih Periode:</label>
-        <select id="periodFilter" class="form-select">
-            <option value="last7days">7 Hari Terakhir</option>
-            <option value="last30days" selected>30 Hari Terakhir</option>
-            <option value="alltime">Semua Waktu</option>
-        </select>
-    </div>
-    <div class="col-md-4">
-        <label for="scFilter" class="form-label">Filter per Source Code (Opsional):</label>
-        <select id="scFilter" class="form-select">
-            <option value="">Semua Source Code</option>
-            <% if (typeof sellerSourceCodes !== 'undefined' && sellerSourceCodes.length > 0) { %>
-                <% sellerSourceCodes.forEach(sc => { %>
-                    <option value="<%= sc._id %>"><%= sc.title %></option>
-                <% }); %>
-            <% } %>
-        </select>
-    </div>
-     <div class="col-md-2">
-        <button id="applyFilterBtn" class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Terapkan</button>
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-4 mb-2 mb-md-0">
+                <label for="periodFilter" class="form-label">Pilih Periode:</label>
+                <select id="periodFilter" class="form-select">
+                    <option value="last7days">7 Hari Terakhir</option>
+                    <option value="last30days" selected>30 Hari Terakhir</option>
+                    <option value="alltime">Semua Waktu</option>
+                </select>
+            </div>
+            <div class="col-md-4 mb-2 mb-md-0">
+                <label for="scFilter" class="form-label">Filter per Source Code (Opsional):</label>
+                <select id="scFilter" class="form-select">
+                    <option value="">Semua Source Code</option>
+                    <% if (typeof sellerSourceCodes !== 'undefined' && sellerSourceCodes.length > 0) { %>
+                        <% sellerSourceCodes.forEach(sc => { %>
+                            <option value="<%= sc._id %>"><%= sc.title %></option>
+                        <% }); %>
+                    <% } %>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button id="applyFilterBtn" class="btn btn-primary w-100 btn-glow"><i class="fas fa-filter me-1"></i> Terapkan</button>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="analyticsLoading" class="text-center py-5" style="display: none;">
-    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+
+<div id="analyticsLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; --bs-spinner-border-width: 0.3em;">
         <span class="visually-hidden">Loading...</span>
     </div>
     <p class="mt-2 text-light">Memuat data analitik...</p>
@@ -38,27 +43,27 @@
 
 <div id="analyticsContent" style="display: none;">
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-center bg-dark-tertiary shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title text-muted">Total Pendapatan</h5>
-                    <p class="display-5 fw-bold text-success" id="totalSalesAmount">Rp 0</p>
+                    <p class="display-5 fw-bold text-success" id="totalSalesAmount" style="text-shadow: 0 0 10px var(--nebula-green);">Rp 0</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card text-center bg-dark-tertiary shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title text-muted">Total Pesanan</h5>
-                    <p class="display-5 fw-bold text-info" id="totalOrders">0</p>
+                    <p class="display-5 fw-bold text-info" id="totalOrders" style="text-shadow: 0 0 10px var(--nebula-cyan);">0</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card text-center bg-dark-tertiary shadow-sm">
+        <div class="col-md-4 mb-3">
+            <div class="card text-center shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title text-muted">Pembeli Unik</h5>
-                    <p class="display-5 fw-bold text-warning" id="totalUniqueBuyers">0</p>
+                    <p class="display-5 fw-bold text-warning" id="totalUniqueBuyers" style="text-shadow: 0 0 10px var(--nebula-yellow-bright);">0</p>
                 </div>
             </div>
         </div>
@@ -66,7 +71,7 @@
 
     <div class="row">
         <div class="col-lg-7 mb-4">
-            <div class="card bg-dark-tertiary shadow-sm">
+            <div class="card shadow-sm">
                 <div class="card-header">Pendapatan Harian (<span id="chartPeriod"></span>)</div>
                 <div class="card-body">
                     <canvas id="dailySalesChart"></canvas>
@@ -74,11 +79,11 @@
             </div>
         </div>
         <div class="col-lg-5 mb-4">
-            <div class="card bg-dark-tertiary shadow-sm">
+            <div class="card shadow-sm">
                 <div class="card-header">Top 5 Source Code Terlaris (<span id="topScPeriod"></span>)</div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     <ul class="list-group list-group-flush" id="topSellingScList">
-                        <li class="list-group-item bg-dark-tertiary text-muted">Memuat data...</li>
+                        <li class="list-group-item text-muted">Memuat data...</li>
                     </ul>
                 </div>
             </div>
@@ -87,7 +92,7 @@
 </div>
 <div id="analyticsError" class="alert alert-danger" style="display: none;"></div>
 
-
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -140,15 +145,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.topSellingSc.length > 0) {
                 data.topSellingSc.forEach(sc => {
                     const li = document.createElement('li');
-                    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center', 'bg-dark-tertiary', 'text-light');
+                    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
                     li.innerHTML = `
-                        <a href="/sc/${sc._id}" target="_blank" class="text-light text-decoration-none">${sc.title}</a>
+                        <a href="/sc/${sc._id}" target="_blank" class="text-decoration-none">${sc.title}</a>
                         <span class="badge bg-primary rounded-pill">${sc.totalSold} terjual</span>
                     `;
                     topSellingScListEl.appendChild(li);
                 });
             } else {
-                topSellingScListEl.innerHTML = '<li class="list-group-item bg-dark-tertiary text-muted">Tidak ada data penjualan.</li>';
+                topSellingScListEl.innerHTML = '<li class="list-group-item text-muted">Tidak ada data penjualan.</li>';
             }
 
             const chartLabels = data.dailySales.map(d => new Date(d._id).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
@@ -157,6 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (dailySalesChartInstance) {
                 dailySalesChartInstance.destroy();
             }
+            Chart.defaults.color = 'var(--nebula-text-secondary)'; // Chart text color
             dailySalesChartInstance = new Chart(dailySalesChartCanvas, {
                 type: 'line',
                 data: {
@@ -164,15 +170,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     datasets: [{
                         label: 'Pendapatan (Rp)',
                         data: chartRevenueData,
-                        borderColor: 'rgba(0, 207, 232, 1)',
-                        backgroundColor: 'rgba(0, 207, 232, 0.1)',
-                        tension: 0.3,
+                        borderColor: 'var(--nebula-cyan)',
+                        backgroundColor: 'rgba(34, 211, 238, 0.15)',
+                        tension: 0.4,
                         fill: true,
-                        pointBackgroundColor: 'rgba(0, 207, 232, 1)',
-                        pointBorderColor: '#fff',
-                        pointHoverRadius: 7,
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgba(0, 207, 232, 1)'
+                        pointBackgroundColor: 'var(--nebula-cyan)',
+                        pointBorderColor: 'var(--nebula-card-bg-opaque)',
+                        pointHoverRadius: 8,
+                        pointHoverBackgroundColor: 'var(--nebula-card-bg-opaque)',
+                        pointHoverBorderColor: 'var(--nebula-cyan)',
+                        pointHoverBorderWidth: 2,
+                        borderWidth: 2.5,
                     }]
                 },
                 options: {
@@ -182,19 +190,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         y: {
                             beginAtZero: true,
                             ticks: { 
-                                color: '#B0B0B0',
+                                color: 'var(--nebula-text-secondary)',
                                 callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }
                             },
-                            grid: { color: 'rgba(176,176,176,0.1)'}
+                            grid: { color: 'rgba(168, 85, 247, 0.15)'} // Grid line color
                         },
                         x: {
-                            ticks: { color: '#B0B0B0' },
+                            ticks: { color: 'var(--nebula-text-secondary)' },
                             grid: { display: false }
                         }
                     },
                     plugins: {
-                        legend: { display: false },
+                        legend: { 
+                            display: true, 
+                            labels: { color: 'var(--nebula-text-primary)' } 
+                        },
                         tooltip: {
+                            backgroundColor: 'var(--nebula-bg-secondary)',
+                            titleColor: 'var(--nebula-text-primary)',
+                            bodyColor: 'var(--nebula-text-secondary)',
+                            borderColor: 'var(--nebula-border-color)',
+                            borderWidth: 1,
                             callbacks: {
                                 label: function(context) {
                                     let label = context.dataset.label || '';
@@ -206,7 +222,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                             }
                         }
-                    }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                 }
             });
             analyticsContentEl.style.display = 'block';
@@ -220,6 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     applyFilterBtn.addEventListener('click', fetchAnalyticsData);
-    fetchAnalyticsData(); // Load data on initial page load
+    fetchAnalyticsData(); 
 });
 </script>

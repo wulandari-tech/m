@@ -1,61 +1,173 @@
-<h1><i class="fas fa-history"></i> Riwayat Pesanan Saya</h1>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-history"></i> Riwayat Pesanan Saya</h1>
+<hr class="main-hr">
 <% if (orders && orders.length > 0) { %>
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Source Code</th>
-                <th>Tipe</th>
-                <th>Tanggal Pesan</th>
-                <th>Total Bayar</th>
-                <th>Status Bayar</th>
-                <th>Detail</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% orders.forEach((order, index) => { %>
-            <tr>
-                <td><%= index + 1 %></td>
-                <td><%= order.sourceCode ? order.sourceCode.title : 'SC Telah Dihapus' %></td>
-                <td>
-                    <% if (order.orderType === 'buy') { %>
-                        <span class="badge bg-primary">Beli</span>
-                    <% } else { %>
-                        <span class="badge bg-info">Sewa</span>
-                        <br><small>s/d <%= new Date(order.rentalEndDate).toLocaleDateString('id-ID') %></small>
-                    <% } %>
-                </td>
-                <td><%= new Date(order.createdAt).toLocaleDateString('id-ID') %></td>
-                <td>Rp <%= order.amount.toLocaleString('id-ID') %></td>
-                <td>
-                    <span class="badge bg-<%= order.paymentStatus === 'completed' ? 'success' : (order.paymentStatus === 'pending' ? 'warning' : 'danger') %>">
-                        <%= order.paymentStatus %>
-                    </span>
-                </td>
-                <td>
-                    <% if (order.sourceCode) { %>
-                        <a href="/sc/<%= order.sourceCode._id %>" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-eye"></i> Lihat SC
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Produk</th>
+                    <th>Tipe</th>
+                    <th>Tanggal Pesan</th>
+                    <th>Total Bayar</th>
+                    <th>Status Bayar</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% orders.forEach((order, index) => { %>
+                <tr>
+                    <td><%= index + 1 %></td>
+                    <td>
+                        <% if (order.sourceCode && order.sourceCode.title) { %>
+                            <a href="/sc/<%= order.sourceCode._id %>"><%= order.sourceCode.title %></a>
+                            <% if (order.sourceCode.productType === 'panel_service') { %>
+                                <span class="badge bg-info ms-1">Panel</span>
+                            <% } %>
+                        <% } else if (order.scTitleAtPurchase) { %>
+                            <%= order.scTitleAtPurchase %> (Produk mungkin telah dihapus)
+                        <% } else { %>
+                            Produk Telah Dihapus
+                        <% } %>
+                    </td>
+                    <td>
+                        <% if (order.orderType === 'buy') { %>
+                            <span class="badge bg-primary">Beli</span>
+                        <% } else if (order.orderType === 'rent') { %>
+                            <span class="badge bg-info">Sewa</span>
+                            <% if (order.rentalEndDate) { %>
+                            <br><small>s/d <%= new Date(order.rentalEndDate).toLocaleDateString('id-ID') %></small>
+                            <% } %>
+                        <% } else { %>
+                            -
+                        <% } %>
+                    </td>
+                    <td><%= new Date(order.createdAt).toLocaleDateString('id-ID') %></td>
+                    <td>
+                        <% if (typeof order.amount === 'number') { %>
+                            Rp <%= order.amount.toLocaleString('id-ID') %>
+                        <% } else { %>
+                            N/A
+                        <% } %>
+                    </td>
+                    <td>
+                        <span class="badge bg-<%= order.paymentStatus === 'completed' ? 'success' : (order.paymentStatus === 'pending' ? 'warning text-dark' : 'danger') %>">
+                            <%= order.paymentStatus %>
+                        </span>
+                    </td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#orderDetailModal_<%= order._id %>">
+                            <i class="fas fa-receipt"></i> Detail
                         </a>
-                        <% if (order.orderType === 'buy' && order.paymentStatus === 'completed' && order.downloadLink) { %>
-                             <a href="<%= order.downloadLink %>" class="btn btn-sm btn-outline-success ms-1">
-                                <i class="fas fa-download"></i> Unduh
+                        <% if (order.sourceCode && order.sourceCode.productType === 'source_code') { %>
+                            <a href="/sc/<%= order.sourceCode._id %>" class="btn btn-sm btn-outline-primary ms-1">
+                                <i class="fas fa-eye"></i> Lihat Produk
+                            </a>
+                            <% if (order.orderType === 'buy' && order.paymentStatus === 'completed' && order.downloadLink) { %>
+                                 <a href="<%= order.downloadLink %>" class="btn btn-sm btn-outline-success ms-1">
+                                    <i class="fas fa-download"></i> Unduh
+                                </a>
+                            <% } %>
+                        <% } else if (order.sourceCodeDetails && order.sourceCodeDetails.productType === 'panel_service' && order.paymentStatus === 'completed' && order.deliveryStatus === 'delivered' && order.panelDetails) { %>
+                             <a href="<%= order.panelDetails.panelUrl %>" target="_blank" class="btn btn-sm btn-outline-success ms-1">
+                                <i class="fas fa-external-link-alt"></i> Akses Panel
                             </a>
                         <% } %>
-                    <% } else { %>
-                        -
-                    <% } %>
-                </td>
-            </tr>
-            <% }) %>
-        </tbody>
-    </table>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<% orders.forEach((order, index) => { %>
+<div class="modal fade order-detail-modal" id="orderDetailModal_<%= order._id %>" tabindex="-1" aria-labelledby="orderDetailModalLabel_<%= order._id %>" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="orderDetailModalLabel_<%= order._id %>"><i class="fas fa-file-invoice-dollar me-2"></i>Detail Pesanan #<%= order.midtransOrderId || order._id.toString().slice(-8).toUpperCase() %></h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Informasi Produk:</h6>
+                <p>
+                    <strong>Nama Produk:</strong> <%= order.scTitleAtPurchase || (order.sourceCode ? order.sourceCode.title : 'N/A') %><br>
+                    <strong>Tipe Produk:</strong> <%= order.sourceCodeDetails && order.sourceCodeDetails.productType === 'panel_service' ? 'Layanan Panel' : 'Source Code' %><br>
+                    <strong>Tipe Order:</strong> <%= order.orderType === 'buy' ? 'Pembelian' : 'Sewa' %>
+                    <% if (order.orderType === 'rent' && order.rentalOption) { %>
+                        (<%= order.rentalOption.duration %>)
+                    <% } %>
+                </p>
+                 <h6>Informasi Pembayaran:</h6>
+                <p>
+                    <strong>Total Bayar:</strong> Rp <%= typeof order.amount === 'number' ? order.amount.toLocaleString('id-ID') : 'N/A' %><br>
+                    <strong>Metode Pembayaran:</strong> <span class="text-capitalize"><%= order.paymentMethod %></span><br>
+                    <strong>Status Pembayaran:</strong> <span class="badge bg-<%= order.paymentStatus === 'completed' ? 'success' : (order.paymentStatus === 'pending' ? 'warning text-dark' : 'danger') %>"><%= order.paymentStatus %></span><br>
+                    <strong>Tanggal Pesan:</strong> <%= new Date(order.createdAt).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' }) %>
+                </p>
+            </div>
+            <div class="col-md-6">
+                <% if (order.sourceCodeDetails && order.sourceCodeDetails.productType === 'panel_service' && order.paymentStatus === 'completed') { %>
+                    <h6>Detail Layanan Panel:</h6>
+                    <% if (order.deliveryStatus === 'delivered' && order.panelDetails) { %>
+                        <ul class="list-unstyled">
+                            <li><strong>URL Panel:</strong> <a href="<%= order.panelDetails.panelUrl %>" target="_blank"><%= order.panelDetails.panelUrl %></a></li>
+                            <li><strong>Username:</strong> <%= order.panelDetails.username %></li>
+                            <li><strong>Password Awal:</strong> <code><%= order.panelDetails.password %></code> <br><small class="text-warning">(Harap segera ganti password Anda di panel!)</small></li>
+                            <li><strong>ID Server Ptero:</strong> <%= order.panelDetails.serverId || '-' %></li>
+                        </ul>
+                    <% } else if (order.deliveryStatus === 'pending_provisioning') { %>
+                        <p class="text-info"><i class="fas fa-spinner fa-spin me-1"></i> Panel sedang disiapkan. Mohon tunggu beberapa saat.</p>
+                    <% } else if (order.deliveryStatus === 'provisioning_failed') { %>
+                        <p class="text-danger"><i class="fas fa-times-circle me-1"></i> Gagal membuat panel. <%= order.notes ? `Catatan: ${order.notes}` : 'Silakan hubungi support.' %></p>
+                    <% } else { %>
+                        <p class="text-muted">Detail panel akan muncul setelah pembayaran dan provisioning selesai.</p>
+                    <% } %>
+                <% } else if (order.sourceCodeDetails && order.sourceCodeDetails.productType === 'source_code' && order.orderType === 'buy' && order.paymentStatus === 'completed') { %>
+                     <h6>Akses Produk:</h6>
+                    <% if (order.downloadLink) { %>
+                        <a href="<%= order.downloadLink %>" class="btn btn-success btn-sm mt-2"><i class="fas fa-download me-1"></i> Unduh Source Code</a>
+                    <% } else { %>
+                        <p class="text-muted">Link unduhan belum tersedia atau produk tidak memerlukan file.</p>
+                    <% } %>
+                <% } else if (order.sourceCodeDetails && order.sourceCodeDetails.productType === 'source_code' && order.orderType === 'rent' && order.paymentStatus === 'completed') { %>
+                    <h6>Akses Produk (Sewa):</h6>
+                    <% if (order.rentalEndDate && new Date() <= new Date(order.rentalEndDate) && order.downloadLink) { %>
+                         <p>Aktif hingga: <strong><%= new Date(order.rentalEndDate).toLocaleString('id-ID', { dateStyle:'full', timeStyle:'short' }) %></strong></p>
+                         <a href="<%= order.downloadLink %>" class="btn btn-info btn-sm mt-2"><i class="fas fa-file-code me-1"></i> Unduh File Sewa</a>
+                    <% } else if (order.rentalEndDate && new Date() > new Date(order.rentalEndDate)) { %>
+                         <p class="text-danger">Masa sewa telah berakhir pada <%= new Date(order.rentalEndDate).toLocaleString('id-ID', { dateStyle:'full', timeStyle:'short' }) %>.</p>
+                    <% } else { %>
+                         <p class="text-muted">Akses sewa belum aktif atau sudah berakhir.</p>
+                    <% } %>
+                <% } %>
+                 <% if (order.qrisData && order.qrisData.qrImageUrl) { %>
+                    <h6 class="mt-3">Detail Pembayaran QRIS:</h6>
+                    <img src="<%= order.qrisData.qrImageUrl %>" alt="QRIS Order" class="img-thumbnail" style="max-width: 150px;">
+                    <p class="small text-muted mt-1">ID Transaksi QRIS: <%= order.qrisData.transactionId %></p>
+                <% } %>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+      </div>
+    </div>
+  </div>
+</div>
+<% }) %>
+
+
 <% } else { %>
 <div class="alert alert-info">
     <i class="fas fa-info-circle"></i> Anda belum memiliki riwayat pesanan.
 </div>
 <% } %>
-<a href="/sc-list" class="btn btn-primary mt-3"><i class="fas fa-shopping-cart"></i> Mulai Belanja SC</a>
+<a href="/sc-list" class="btn btn-primary mt-3 btn-glow"><i class="fas fa-shopping-cart"></i> Mulai Belanja Produk</a>
+<style> 
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
+</style>

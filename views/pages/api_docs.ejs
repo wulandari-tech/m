@@ -1,0 +1,146 @@
+<%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
+
+<h1 class="text-glow-primary"><i class="fas fa-book-open me-2"></i>Dokumentasi API Publik</h1>
+<p class="lead">Gunakan API kami untuk mengintegrasikan data marketplace produk ke dalam aplikasi Anda.</p>
+<hr class="main-hr">
+
+<section class="api-section mb-5">
+    <h2 class="text-glow-accent">Endpoint Dasar</h2>
+    <p>Semua endpoint API berada di bawah prefix <code>/api/v1</code>.</p>
+</section>
+
+<section class="api-section mb-4">
+    <h3 class="text-info">1. Mendapatkan Daftar Semua Produk</h3>
+    <p>Mengambil daftar semua produk yang sudah disetujui dan aktif di marketplace.</p>
+    <p><strong>Method:</strong> <code>GET</code></p>
+    <p><strong>Endpoint:</strong> <code>/api/v1/products</code></p>
+    
+    <h5 class="mt-3">Parameter Query (Opsional):</h5>
+    <ul class="list-group list-group-flush mb-3">
+        <li class="list-group-item"><code>limit</code>: Jumlah produk per halaman (default: 10). Contoh: <code>?limit=20</code></li>
+        <li class="list-group-item"><code>page</code>: Nomor halaman (default: 1). Contoh: <code>?page=2</code></li>
+        <li class="list-group-item"><code>category</code>: Filter berdasarkan kategori produk. Contoh: <code>?category=Web PHP</code></li>
+        <li class="list-group-item"><code>type</code>: Filter berdasarkan tipe produk ('source_code' atau 'panel_service'). Contoh: <code>?type=panel_service</code></li>
+        <li class="list-group-item"><code>sort_by</code>: Urutkan berdasarkan ('price', 'rating', 'createdAt'). Default 'createdAt'. Contoh: <code>?sort_by=price</code></li>
+        <li class="list-group-item"><code>sort_order</code>: Arah urutan ('asc' atau 'desc'). Default 'desc'. Contoh: <code>?sort_order=asc</code></li>
+    </ul>
+
+    <h5>Contoh Respons Sukses (JSON):</h5>
+    <pre class="bg-dark p-3 rounded text-light small"><code>{
+    "success": true,
+    "message": "Daftar produk berhasil diambil.",
+    "data": [
+        {
+            "_id": "60c72b2f9b1e8a001c8e4d8e",
+            "title": "Nama Produk Keren",
+            "description": "Deskripsi singkat produk...",
+            "category": "Web PHP",
+            "productType": "source_code",
+            "price_buy": 50000,
+            "seller": {
+                "_id": "60c72b2f9b1e8a001c8e4d8c",
+                "storeName": "Toko Seller A"
+            },
+            "averageRating": 4.5,
+            "totalReviews": 10,
+            "screenshots": ["/uploads/screenshots/image1.jpg"],
+            "createdAt": "2023-01-01T12:00:00.000Z"
+        },
+    ],
+    "pagination": {
+        "currentPage": 1,
+        "totalPages": 5,
+        "totalProducts": 50,
+        "limit": 10
+    }
+}</code></pre>
+</section>
+
+<section class="api-section mb-4">
+    <h3 class="text-info">2. Mendapatkan Detail Produk berdasarkan ID</h3>
+    <p>Mengambil detail spesifik dari satu produk berdasarkan ID uniknya.</p>
+    <p><strong>Method:</strong> <code>GET</code></p>
+    <p><strong>Endpoint:</strong> <code>/api/v1/products/:id</code></p>
+    <p>Ganti <code>:id</code> dengan ID produk yang valid.</p>
+
+    <h5>Contoh Respons Sukses (JSON):</h5>
+    <pre class="bg-dark p-3 rounded text-light small"><code>{
+    "success": true,
+    "data": {
+        "_id": "60c72b2f9b1e8a001c8e4d8e",
+        "title": "Nama Produk Keren",
+        "description": "Deskripsi lengkap produk...",
+        "category": "Web PHP",
+        "productType": "source_code",
+        "tags": ["php", "laravel"],
+        "techStack": ["PHP 8", "MySQL"],
+        "price_buy": 50000,
+        "is_for_rent_only": false,
+        "rental_options": [{ "duration": "1 Bulan", "price": 10000 }],
+        "seller": {
+            "_id": "60c72b2f9b1e8a001c8e4d8c",
+            "storeName": "Toko Seller A",
+            "profilePicture": "/uploads/profiles/seller_avatar.jpg"
+        },
+        "screenshots": ["/uploads/screenshots/image1.jpg", "/uploads/screenshots/image2.jpg"],
+        "demoUrl": "https://demo.example.com",
+        "averageRating": 4.5,
+        "totalReviews": 10,
+        "createdAt": "2023-01-01T12:00:00.000Z",
+        "updatedAt": "2023-01-02T10:00:00.000Z"
+    }
+}</code></pre>
+    <h5>Contoh Respons Gagal (JSON - Produk Tidak Ditemukan):</h5>
+    <pre class="bg-dark p-3 rounded text-light small"><code>{
+    "success": false,
+    "message": "Produk tidak ditemukan."
+}</code></pre>
+</section>
+
+<section class="api-section">
+    <h2 class="text-glow-accent">Catatan Penting</h2>
+    <ul class="list-group list-group-flush">
+        <li class="list-group-item">Semua respons API dalam format JSON.</li>
+        <li class="list-group-item">Endpoint di masa depan mungkin memerlukan autentikasi API Key untuk rate limiting atau akses ke data sensitif.</li>
+        <li class="list-group-item">Dokumentasi ini akan terus diperbarui seiring penambahan fitur API baru.</li>
+    </ul>
+</section>
+
+<style>
+    .api-section {
+        padding: 1.5rem;
+        background-color: var(--nebula-card-bg-opaque);
+        border: 1px solid var(--nebula-border-color);
+        border-radius: var(--border-radius);
+    }
+    .api-section pre {
+        white-space: pre-wrap;
+        word-break: break-all;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
+    .text-glow-accent { text-shadow: 0 0 8px var(--accent-color); }
+    .list-group-item {
+        background-color: transparent !important;
+        color: var(--nebula-text-secondary) !important;
+        border-color: var(--nebula-border-color) !important;
+    }
+    .list-group-item code {
+        color: var(--nebula-magenta);
+        background-color: rgba(var(--rgb-magenta-color, 236, 72, 153), 0.1);
+        padding: 0.2em 0.4em;
+        border-radius: 0.2rem;
+    }
+     pre code {
+        color: #c5c8c6 !important; /* Warna teks default untuk kode di pre */
+    }
+</style>
+<script>
+    // Jika kamu menggunakan library highlight.js atau prism.js
+    // document.addEventListener('DOMContentLoaded', (event) => {
+    //   document.querySelectorAll('pre code').forEach((block) => {
+    //     hljs.highlightElement(block);
+    //   });
+    // });
+</script>

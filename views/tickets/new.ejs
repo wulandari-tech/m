@@ -1,8 +1,8 @@
 <%# views/tickets/new.ejs %>
 <%- include('../partials/breadcrumbs', { breadcrumbs: breadcrumbs }) %>
 
-<h1><i class="fas fa-plus-circle me-2"></i><%= receiverName ? `Kirim Pesan ke ${receiverName}` : 'Buat Tiket Bantuan Baru' %></h1>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-plus-circle me-2"></i><%= receiverName ? `Kirim Pesan ke ${receiverName}` : 'Buat Tiket Bantuan Baru' %></h1>
+<hr class="main-hr">
 
 <div class="row">
     <div class="col-md-8 offset-md-2">
@@ -28,7 +28,7 @@
 
                     <div class="mb-3">
                         <label for="subject" class="form-label">Subjek <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="subject" name="subject" value="<%= subject %>" minlength="5" required>
+                        <input type="text" class="form-control" id="subject" name="subject" value="<%= typeof subject != 'undefined' ? subject : '' %>" minlength="5" required>
                         <div class="invalid-feedback">Subjek minimal 5 karakter.</div>
                     </div>
 
@@ -63,7 +63,7 @@
 
                     <div class="mb-3">
                         <label for="message" class="form-label">Pesan Anda <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="message" name="message" rows="6" minlength="10" required><%= message %></textarea>
+                        <textarea class="form-control" id="message" name="message" rows="6" minlength="10" required><%= typeof message != 'undefined' ? message : '' %></textarea>
                         <div class="invalid-feedback">Pesan minimal 10 karakter.</div>
                     </div>
                     
@@ -81,10 +81,11 @@
                     <% } %>
 
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-paper-plane me-2"></i>Kirim Tiket</button>
+                        <button type="submit" class="btn btn-primary btn-lg btn-glow"><i class="fas fa-paper-plane me-2"></i>Kirim Tiket</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>

@@ -1,25 +1,36 @@
-<h1><i class="fas fa-list-ul"></i> Semua Source Code</h1>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-list-ul"></i> Semua Source Code</h1>
+<hr class="main-hr">
 <% if (sourceCodes && sourceCodes.length > 0) { %>
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     <% sourceCodes.forEach(sc => { %>
-    <div class="col">
-        <div class="card h-100">
-            <!-- <img src="placeholder-image.jpg" class="card-img-top" alt="<%= sc.title %>"> -->
+    <div class="col d-flex"> 
+        <div class="card sc-card h-100"> 
+            <% if (sc.screenshots && sc.screenshots.length > 0) { %>
+                <a href="/sc/<%= sc._id %>">
+                    <img src="/<%= sc.screenshots[0].replace(/\\/g, '/') %>" class="card-img-top sc-card-img" alt="<%= sc.title %>">
+                </a>
+            <% } else { %>
+                <a href="/sc/<%= sc._id %>">
+                    <div class="card-img-top sc-card-img-placeholder d-flex align-items-center justify-content-center text-muted">
+                        <i class="fas fa-image fa-3x"></i>
+                    </div>
+                </a>
+            <% } %>
             <div class="card-body d-flex flex-column">
-                <h5 class="card-title"><%= sc.title %></h5>
-                <p class="card-text text-muted small">Kategori: <%= sc.category %></p>
-                <p class="card-text flex-grow-1"><%= sc.description.substring(0, 120) %>...</p>
+                <h5 class="card-title"><a href="/sc/<%= sc._id %>" class="text-decoration-none"><%= sc.title %></a></h5>
+                <p class="card-text text-muted small">Kategori: <span class="badge sc-category-badge"><%= sc.category %></span></p>
+                <p class="card-text flex-grow-1"><%= sc.description.substring(0, 100) %>...</p>
                 
                 <% if (!sc.is_for_rent_only && sc.price_buy) { %>
-                    <p class="fw-bold mb-1">Harga Beli: Rp <%= sc.price_buy.toLocaleString('id-ID') %></p>
+                    <p class="fw-bold mb-1 sc-price-buy">Harga Beli: Rp <%= sc.price_buy.toLocaleString('id-ID') %></p>
                 <% } %>
                 <% if (sc.rental_options && sc.rental_options.length > 0) { %>
-                     <p class="fw-bold mb-1">Mulai Sewa: Rp <%= sc.rental_options[0].price.toLocaleString('id-ID') %> / <%= sc.rental_options[0].duration %></p>
+                    <% const minRental = sc.rental_options.reduce((min, p) => p.price < min.price ? p : min, sc.rental_options[0]); %>
+                     <p class="fw-bold mb-1 sc-price-rent">Mulai Sewa: Rp <%= minRental.price.toLocaleString('id-ID') %> / <%= minRental.duration %></p>
                 <% } %>
-                <p class="card-text"><small class="text-muted">Dijual oleh: <%= sc.seller ? sc.seller.name : 'N/A' %></small></p>
+                <p class="card-text mt-auto"><small class="text-muted">Dijual oleh: <%= sc.seller ? (sc.seller.storeName || sc.seller.name) : 'N/A' %></small></p>
             </div>
-             <div class="card-footer bg-transparent border-top-0">
+             <div class="card-footer pt-0">
                 <a href="/sc/<%= sc._id %>" class="btn btn-primary btn-sm w-100"><i class="fas fa-eye"></i> Lihat Detail</a>
             </div>
         </div>
@@ -31,3 +42,4 @@
     <i class="fas fa-info-circle"></i> Belum ada source code yang tersedia saat ini.
 </div>
 <% } %>
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>

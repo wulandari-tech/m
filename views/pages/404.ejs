@@ -2,18 +2,31 @@
 <div class="container text-center py-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <i class="fas fa-exclamation-triangle fa-5x text-warning mb-4"></i>
-            <h1 class="display-1 fw-bold">404</h1>
+            <i class="fas fa-ghost fa-5x text-warning mb-4 animate-float"></i>
+            <h1 class="display-1 fw-bold text-danger">404</h1>
             <h2 class="mb-4">Halaman Tidak Ditemukan</h2>
             <p class="lead text-muted mb-4">
-                Maaf, halaman yang Anda cari tidak dapat ditemukan. Mungkin halaman tersebut telah dipindahkan, dihapus, atau Anda salah mengetik alamat URL.
+                Oops! Sepertinya Anda tersesat di galaksi kode. Halaman yang Anda cari mungkin telah melayang ke lubang hitam.
             </p>
-            <a href="/" class="btn btn-primary btn-lg">
-                <i class="fas fa-home me-2"></i>Kembali ke Beranda
+            <a href="/" class="btn btn-primary btn-lg btn-glow">
+                <i class="fas fa-home me-2"></i>Kembali ke Stasiun Luar Angkasa
             </a>
             <button onclick="window.history.back();" class="btn btn-outline-secondary btn-lg ms-2">
-                <i class="fas fa-arrow-left me-2"></i>Kembali
+                <i class="fas fa-arrow-left me-2"></i>Kembali ke Jalur Semula
             </button>
         </div>
     </div>
 </div>
+<style>
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+    }
+    .animate-float {
+        animation: float 3s ease-in-out infinite;
+    }
+    .fa-ghost {
+        text-shadow: 0 0 15px var(--warning-color);
+    }
+</style>

@@ -2,7 +2,7 @@
 
 <div class="row">
     <div class="col-md-8">
-        <h1 class="d-flex align-items-center">
+        <h1 class="d-flex align-items-center text-glow-primary">
             <i class="fas fa-ticket-alt me-2"></i>
             <span id="ticketSubject"><%= ticket.subject %></span>
         </h1>
@@ -12,12 +12,14 @@
             <input type="hidden" id="currentUserId" value="<%= currentUser._id.toString() %>">
             <input type="hidden" id="currentUserProfilePic" value="<%= currentUser.profilePicture %>">
             <input type="hidden" id="currentUserName" value="<%= currentUser.name %>">
+            <input type="hidden" id="ticketUserId" value="<%= ticket.user._id.toString() %>">
+
 
             <span class="ms-2 badge 
-                <%= ticket.status === 'open' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : '' %>
-                <%= ticket.status === 'pending_reply' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : '' %>
-                <%= ticket.status === 'resolved' ? 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' : '' %>
-                <%= ticket.status === 'closed' ? 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' : '' %>
+                <%= ticket.status === 'open' ? 'bg-success' : '' %>
+                <%= ticket.status === 'pending_reply' ? 'bg-warning text-dark' : '' %>
+                <%= ticket.status === 'resolved' ? 'bg-primary' : '' %>
+                <%= ticket.status === 'closed' ? 'bg-secondary' : '' %>
             " id="ticketStatusBadge">
                 Status: <span id="ticketStatusText"><%= ticket.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %></span>
             </span>
@@ -31,12 +33,12 @@
         <% } %>
     </div>
 </div>
-<hr class="mb-3">
+<hr class="mb-3 main-hr">
 
 <div class="row">
     <div class="col-md-3 order-md-2 mb-4">
         <div class="card shadow-sm">
-            <div class="card-header bg-light">
+            <div class="card-header">
                 <h5 class="mb-0 small text-muted">Detail Tiket</h5>
             </div>
             <ul class="list-group list-group-flush small">
@@ -70,12 +72,12 @@
     </div>
 
     <div class="col-md-9 order-md-1">
-        <div id="messagesContainer" class="messages-container mb-3 shadow-sm" style="height: 400px; overflow-y: auto; border:1px solid #e0e0e0; padding:15px; border-radius:var(--border-radius); background-color: #f9f9f9;">
+        <div id="messagesContainer" class="messages-container mb-3 shadow-sm" style="height: 400px; overflow-y: auto; border:1px solid var(--nebula-border-color); padding:15px; border-radius:var(--border-radius); background-color: var(--nebula-bg-secondary);">
             <% ticket.messages.forEach(msg => { %>
                 <div class="message mb-3 <%= msg.sender._id.toString() === currentUser._id.toString() ? 'sent' : 'received' %>">
-                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'bg-primary text-white ms-auto' : 'bg-light border' %>" style="max-width: 80%;">
+                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'bg-primary text-white ms-auto' : 'bg-light border' %>" style="max-width: 80%; background-color: <%= msg.sender._id.toString() === currentUser._id.toString() ? 'var(--primary-color)' : 'var(--nebula-card-bg-opaque)' %>; color: <%= msg.sender._id.toString() === currentUser._id.toString() ? 'var(--text-light)' : 'var(--nebula-text-primary)' %>; border-color: <%= msg.sender._id.toString() === currentUser._id.toString() ? 'transparent' : 'var(--nebula-border-color)' %>;">
                         <p class="mb-1 message-content"><%- msg.message.replace(/\n/g, '<br>') %></p>
-                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'text-light-emphasis' : 'text-muted' %>">
+                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'opacity-75' : 'text-muted' %>">
                             <img src="<%= msg.sender.profilePicture %>" alt="<%= msg.sender.name %>" class="rounded-circle me-1" width="20" height="20" style="object-fit:cover;">
                             <strong><%= msg.sender._id.toString() === currentUser._id.toString() ? 'Anda' : msg.sender.name %></strong> 
                             - <%= new Date(msg.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) %>
@@ -87,14 +89,14 @@
         <div id="typingIndicator" class="small text-muted fst-italic mb-2" style="height: 20px;"></div>
 
         <% if (ticket.status !== 'closed' && ticket.status !== 'resolved') { %>
-        <div class="reply-form mt-0 pt-3 border-top">
+        <div class="reply-form mt-0 pt-3 border-top" style="border-color: var(--nebula-border-color) !important;">
             <form id="replyTicketForm" class="needs-validation" novalidate>
                 <div class="mb-2">
                     <label for="messageInput" class="form-label visually-hidden">Pesan Balasan Anda</label>
                     <textarea class="form-control" id="messageInput" name="message" rows="3" placeholder="Ketik balasan Anda di sini..." minlength="1" required></textarea>
                     <div class="invalid-feedback">Pesan tidak boleh kosong.</div>
                 </div>
-                <button type="submit" id="sendReplyButton" class="btn btn-success"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
+                <button type="submit" id="sendReplyButton" class="btn btn-success btn-glow"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
             </form>
         </div>
         <% } else { %>
@@ -105,11 +107,20 @@
     </div>
 </div>
 <style>
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
     .message.sent .message-bubble { float: right; clear: both; }
     .message.received .message-bubble { float: left; clear: both; }
     .message-bubble { display: inline-block; }
     .message:after { content: ""; display: table; clear: both; }
     .message-content { word-break: break-word; }
+    .bg-light.border { /* For received messages if default styling is kept */
+        background-color: var(--nebula-card-bg-opaque) !important;
+        border-color: var(--nebula-border-color) !important;
+        color: var(--nebula-text-primary) !important;
+    }
+    .bg-light.border .text-muted {
+        color: var(--nebula-text-muted) !important;
+    }
 </style>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -120,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentUserId = document.getElementById('currentUserId').value;
     const currentUserProfilePic = document.getElementById('currentUserProfilePic').value;
     const currentUserName = document.getElementById('currentUserName').value;
+    const ticketUserId = document.getElementById('ticketUserId').value; // Added this line
 
     const messagesContainer = document.getElementById('messagesContainer');
     const replyForm = document.getElementById('replyTicketForm');
@@ -156,17 +168,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 messageInput.value = '';
                 this.classList.remove('was-validated');
-                socket.emit('stopTyping', { ticketId }); // Kirim event stop typing
+                socket.emit('stopTyping', { ticketId, userId: currentUserId }); 
             }
         });
 
         let typingTimeout;
         messageInput.addEventListener('input', () => {
-            socket.emit('typing', { ticketId, isTyping: true });
+            socket.emit('typing', { ticketId, userId: currentUserId, userName: currentUserName });
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => {
-                socket.emit('stopTyping', { ticketId });
-            }, 2000); // Berhenti typing jika tidak ada input selama 2 detik
+                socket.emit('stopTyping', { ticketId, userId: currentUserId });
+            }, 2000); 
         });
     }
     
@@ -174,19 +186,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.ticketId === ticketId) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', 'mb-3');
-            if (data.sender._id === currentUserId) {
-                messageDiv.classList.add('sent');
-            } else {
-                messageDiv.classList.add('received');
-            }
+            let isSentByCurrentUser = data.sender._id === currentUserId;
+            messageDiv.classList.add(isSentByCurrentUser ? 'sent' : 'received');
 
             const bubbleDiv = document.createElement('div');
             bubbleDiv.classList.add('message-bubble', 'p-3', 'rounded', 'shadow-sm');
             bubbleDiv.style.maxWidth = '80%';
-            if (data.sender._id === currentUserId) {
-                bubbleDiv.classList.add('bg-primary', 'text-white', 'ms-auto');
+            
+            if (isSentByCurrentUser) {
+                bubbleDiv.style.backgroundColor = 'var(--primary-color)';
+                bubbleDiv.style.color = 'var(--text-light)';
+                bubbleDiv.style.marginLeft = 'auto';
             } else {
-                bubbleDiv.classList.add('bg-light', 'border');
+                bubbleDiv.style.backgroundColor = 'var(--nebula-card-bg-opaque)';
+                bubbleDiv.style.color = 'var(--nebula-text-primary)';
+                bubbleDiv.style.borderColor = 'var(--nebula-border-color)';
+                bubbleDiv.classList.add('border'); // Keep if needed for structure
             }
 
             const contentP = document.createElement('p');
@@ -195,11 +210,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const metaSmall = document.createElement('small');
             metaSmall.classList.add('message-meta', 'd-block', 'text-end');
-            if (data.sender._id === currentUserId) {
-                metaSmall.classList.add('text-light-emphasis');
-            } else {
-                metaSmall.classList.add('text-muted');
-            }
+            metaSmall.style.opacity = isSentByCurrentUser ? '0.75' : '1';
+            if(!isSentByCurrentUser) metaSmall.classList.add('text-muted');
+
 
             const senderImg = document.createElement('img');
             senderImg.src = data.sender.profilePicture;
@@ -210,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             senderImg.style.objectFit = 'cover';
 
             const senderNameStrong = document.createElement('strong');
-            senderNameStrong.textContent = data.sender._id === currentUserId ? 'Anda' : data.sender.name;
+            senderNameStrong.textContent = isSentByCurrentUser ? 'Anda' : data.sender.name;
             
             const timeFormat = new Date(data.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'});
 
@@ -224,14 +237,20 @@ document.addEventListener('DOMContentLoaded', function() {
             messagesContainer.appendChild(messageDiv);
             scrollToBottom();
             
-            // Update status jika pesan dari non-owner
-            if (data.sender._id !== document.getElementById('ticketUserId').value) { // Asumsi ada #ticketUserId
-                if (ticketStatusText) ticketStatusText.textContent = "Open"; // Sederhana, idealnya status dari server
-                 if (ticketStatusBadge) {
-                    ticketStatusBadge.className = 'ms-2 badge bg-success-subtle text-success-emphasis border border-success-subtle';
-                 }
+            // Update ticket status text and badge (simplified, ideally from server)
+            if (!isSentByCurrentUser && ticketStatusText && ticketStatusBadge) { // If message from other party
+                // This logic might need to be more robust based on who the "other party" is (admin vs user)
+                // For now, if the current user is the ticket owner and receives a message, status might change to "Pending Reply" (from seller/admin)
+                // If current user is seller/admin and receives from ticket owner, status changes to "Open"
+                if(currentUserId === ticketUserId) { // Current user is the ticket owner
+                    ticketStatusText.textContent = "Pending Balasan"; 
+                    ticketStatusBadge.className = 'ms-2 badge bg-warning text-dark';
+                } else { // Current user is likely admin/seller responding
+                    ticketStatusText.textContent = "Open";
+                    ticketStatusBadge.className = 'ms-2 badge bg-success';
+                }
             }
-             typingIndicator.textContent = ''; // Hapus indikator typing jika ada pesan baru
+             typingIndicator.textContent = ''; 
         }
     });
 
@@ -249,27 +268,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     socket.on('socketError', (error) => {
         console.error('Socket Error:', error.message);
-        // Tampilkan error ke user jika perlu, misal dengan toast Bootstrap
-        const toastContainer = document.querySelector('.toast-container') || document.body;
-        const toastHTML = `
-            <div class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-              <div class="d-flex">
-                <div class="toast-body">
-                  <i class="fas fa-exclamation-circle me-2"></i> ${error.message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-              </div>
-            </div>`;
-        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-        const newToastEl = toastContainer.lastElementChild;
-        const newToast = new bootstrap.Toast(newToastEl, {delay: 5000});
-        newToast.show();
+        const toastContainer = document.querySelector('.toast-container');
+        const toastId = 'socketErrorToast-' + Date.now();
+        if (toastContainer || !document.getElementById(toastId)) { // Create container if not exists
+            let container = toastContainer;
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                container.style.zIndex = 1090; // Ensure it's on top
+                document.body.appendChild(container);
+            }
+        
+            const toastHTML = `
+                <div id="${toastId}" class="toast align-items-center text-bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
+                  <div class="d-flex">
+                    <div class="toast-body">
+                      <i class="fas fa-exclamation-circle me-2"></i> ${error.message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                  </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', toastHTML);
+            const newToastEl = document.getElementById(toastId);
+            const newToast = new bootstrap.Toast(newToastEl);
+            newToast.show();
+        }
     });
    
-    // <input type="hidden" id="ticketUserId" value="<%= ticket.user._id.toString() %>">
     window.addEventListener('beforeunload', () => {
         if (ticketId) {
             socket.emit('leaveTicketRoom', ticketId);
+             socket.emit('stopTyping', { ticketId, userId: currentUserId }); // Ensure typing stops on leave
         }
     });
 });

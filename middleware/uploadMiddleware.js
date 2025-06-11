@@ -2,97 +2,64 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-const ensureUploadsDirExists = (directory) => {
-    if (!fs.existsSync(directory)) {
-        fs.mkdirSync(directory, { recursive: true });
-    }
+const ensureDirectoryExistence = (filePath) => {
+    const dirname = path.dirname(filePath);
+    if (fs.existsSync(dirname)) { return true; }
+    ensureDirectoryExistence(dirname);
+    fs.mkdirSync(dirname, { recursive: true });
 };
 
-const scStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/sourcecodes/';
-        ensureUploadsDirExists(dir);
-        cb(null, dir);
+const storageConfig = (folder) => multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '..', 'public', 'uploads', folder);
+        ensureDirectoryExistence(path.join(uploadPath, 'placeholder.txt'));
+        cb(null, uploadPath);
     },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    filename: (req, file, cb) => {
+        const prefix = folder === 'sc_files' ? 'SC' : (folder === 'screenshots' ? 'SS' : 'PROF');
+        cb(null, `${Date.now()}-${prefix}-${file.originalname.replace(/\s+/g, '-')}`);
     }
 });
 
-const screenshotStorage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/screenshots/';
-        ensureUploadsDirExists(dir);
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const fileFilter = (req, file, cb) => {
-    if (file.fieldname === "sc_file") {
-        if (file.mimetype === 'application/zip' ||
-            file.mimetype === 'application/x-zip-compressed' ||
-            file.mimetype === 'application/octet-stream' ||
-            file.mimetype.startsWith('text/')) { 
-            cb(null, true);
-        } else {
-            req.fileValidationError = "Hanya file .zip atau .txt yang diizinkan untuk Source Code!";
-            return cb(null, false, new Error("Hanya file .zip atau .txt yang diizinkan untuk Source Code!"));
-        }
-    } else if (file.fieldname === "screenshots") {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            req.fileValidationError = "Hanya file gambar yang diizinkan untuk Screenshot!";
-            return cb(null, false, new Error("Hanya file gambar yang diizinkan untuk Screenshot!"));
-        }
-    } else {
-        cb(null, false);
-    }
+const imageFileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) { cb(null, true); }
+    else { cb(new Error('Hanya file gambar yang diizinkan!'), false); }
 };
 
-const uploadScFile = multer({
-    storage: scStorage,
-    limits: { fileSize: 1024 * 1024 * 50 },
-    fileFilter: fileFilter
-}).single('sc_file');
-const uploadScreenshots = multer({
-    storage: screenshotStorage,
-    limits: { fileSize: 1024 * 1024 * 5 }, 
-    fileFilter: fileFilter
-}).array('screenshots', 5); 
-const uploadFields = multer({
+const scFileFilter = (req, file, cb) => {
+    const allowedMimes = ['application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/vnd.rar', 'application/x-7z-compressed', 'text/plain', 'application/octet-stream'];
+    const allowedExts = ['.zip', '.rar', '.7z', '.txt'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedMimes.includes(file.mimetype) || allowedExts.includes(ext)) { cb(null, true); }
+    else { cb(new Error('Tipe file source code tidak diizinkan!'), false); }
+};
+
+const multiFieldUploader = multer({
     storage: multer.diskStorage({
-        destination: function (req, file, cb) {
-            let dir = 'uploads/others/'; 
-            if (file.fieldname === "sc_file") {
-                dir = 'uploads/sourcecodes/';
-            } else if (file.fieldname === "screenshots") {
-                dir = 'uploads/screenshots/';
-            }
-            ensureUploadsDirExists(dir);
-            cb(null, dir);
+        destination: (req, file, cb) => {
+            let folder = 'temp_uploads';
+            if (file.fieldname === 'sc_file') folder = 'sc_files';
+            else if (file.fieldname === 'screenshots') folder = 'screenshots';
+            else if (file.fieldname === 'profilePictureFile') folder = 'profiles';
+            
+            const uploadPath = path.join(__dirname, '..', 'public', 'uploads', folder);
+            ensureDirectoryExistence(path.join(uploadPath, 'placeholder.txt'));
+            cb(null, uploadPath);
         },
-        filename: function (req, file, cb) {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+        filename: (req, file, cb) => {
+            const prefix = file.fieldname === 'sc_file' ? 'SC' : (file.fieldname === 'screenshots' ? 'SS' : (file.fieldname === 'profilePictureFile' ? 'PROF' : 'FILE'));
+            cb(null, `${Date.now()}-${prefix}-${file.originalname.replace(/\s+/g, '-')}`);
         }
     }),
-    limits: {
-        fileSize: {
-            sc_file: 1024 * 1024 * 50, // 50MB
-            screenshots: 1024 * 1024 * 5 // 5MB
-        }
+    fileFilter: (req, file, cb) => {
+        if (file.fieldname === 'sc_file') return scFileFilter(req, file, cb);
+        if (file.fieldname === 'screenshots' || file.fieldname === 'profilePictureFile') return imageFileFilter(req, file, cb);
+        cb(null, false);
     },
-    fileFilter: fileFilter
-}).fields([
-    { name: 'sc_file', maxCount: 1 },
-    { name: 'screenshots', maxCount: 5 }
-]);
+    limits: { fileSize: 50 * 1024 * 1024 }
+});
 
-
-module.exports = { uploadScFile, uploadScreenshots, uploadFields };
+module.exports = {
+    uploadProfilePic: multer({ storage: storageConfig('profiles'), fileFilter: imageFileFilter, limits: { fileSize: 2 * 1024 * 1024 } }),
+    fieldsUploader: multiFieldUploader
+};

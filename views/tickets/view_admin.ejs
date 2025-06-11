@@ -2,25 +2,25 @@
 
 <div class="row">
     <div class="col-md-8">
-        <h1><i class="fas fa-ticket-alt me-2"></i><%= ticket.subject %></h1>
+        <h1 class="text-glow-primary"><i class="fas fa-ticket-alt me-2"></i><%= ticket.subject %></h1>
         <p class="text-muted">Tiket ID: #<%= ticket._id.toString().slice(-6).toUpperCase() %>
             <span class="ms-2 badge 
-                <%= ticket.status === 'open' ? 'bg-success-subtle text-success-emphasis border border-success-subtle' : '' %>
-                <%= ticket.status === 'pending_reply' ? 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' : '' %>
-                <%= ticket.status === 'resolved' ? 'bg-primary-subtle text-primary-emphasis border border-primary-subtle' : '' %>
-                <%= ticket.status === 'closed' ? 'bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle' : '' %>
+                <%= ticket.status === 'open' ? 'bg-success' : '' %>
+                <%= ticket.status === 'pending_reply' ? 'bg-warning text-dark' : '' %>
+                <%= ticket.status === 'resolved' ? 'bg-primary' : '' %>
+                <%= ticket.status === 'closed' ? 'bg-dark' : '' %> <%# Changed from secondary for nebula %>
             ">
                 Status: <%= ticket.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) %>
             </span>
         </p>
     </div>
 </div>
-<hr>
+<hr class="main-hr">
 
 <div class="row">
     <div class="col-md-3 order-md-2 mb-4">
         <div class="card shadow-sm mb-3">
-            <div class="card-header bg-light">
+            <div class="card-header">
                 <h5 class="mb-0 small text-muted">Detail Tiket</h5>
             </div>
             <ul class="list-group list-group-flush small">
@@ -31,7 +31,7 @@
         </div>
 
         <div class="card shadow-sm">
-             <div class="card-header bg-light">
+             <div class="card-header">
                 <h5 class="mb-0 small text-muted">Aksi Admin</h5>
             </div>
             <div class="card-body small">
@@ -55,7 +55,7 @@
                     </div>
                     <button type="submit" class="btn btn-sm btn-outline-info w-100"><i class="fas fa-save me-1"></i>Update Status/Prioritas</button>
                 </form>
-                <hr>
+                <hr class="main-hr my-2">
                 <form action="/api/tickets/admin/<%= ticket._id %>/assign?_method=POST" method="POST" class="needs-loading">
                      <div class="mb-2">
                         <label for="assignToUserId" class="form-label fw-semibold">Assign Ke:</label>
@@ -77,13 +77,17 @@
     </div>
 
     <div class="col-md-9 order-md-1">
-        <div class="messages-container mb-4" style="max-height: 500px; overflow-y: auto; border:1px solid #eee; padding:15px; border-radius:var(--border-radius); background-color: #fdfdfd;">
+        <div class="messages-container mb-4 p-3 rounded" style="max-height: 500px; overflow-y: auto; border:1px solid var(--nebula-border-color); background-color: var(--nebula-bg-secondary);">
             <% ticket.messages.forEach(msg => { %>
                 <div class="message mb-3 <%= msg.sender._id.toString() === currentUser._id.toString() ? 'sent' : 'received' %>">
-                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'bg-success text-white ms-auto' : 'bg-light border' %>" style="max-width: 80%;">
+                    <div class="message-bubble p-3 rounded shadow-sm <%= msg.sender._id.toString() === currentUser._id.toString() ? 'ms-auto' : '' %>" 
+                         style="max-width: 80%; 
+                                background-color: <%= msg.sender._id.toString() === currentUser._id.toString() ? 'var(--success-color)' : 'var(--nebula-card-bg-opaque)' %>; 
+                                color: <%= msg.sender._id.toString() === currentUser._id.toString() ? 'var(--text-light)' : 'var(--nebula-text-primary)' %>;
+                                border: <%= msg.sender._id.toString() !== currentUser._id.toString() ? '1px solid var(--nebula-border-color)' : 'none' %>;">
                         <p class="mb-1"><%- msg.message.replace(/\n/g, '<br>') %></p>
-                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'text-light-emphasis' : 'text-muted' %>">
-                            <img src="<%= msg.sender.profilePicture %>" alt="<%= msg.sender.name %>" class="rounded-circle me-1" width="20" height="20">
+                        <small class="message-meta d-block text-end <%= msg.sender._id.toString() === currentUser._id.toString() ? 'opacity-75' : 'text-muted' %>">
+                            <img src="<%= msg.sender.profilePicture %>" alt="<%= msg.sender.name %>" class="rounded-circle me-1" width="20" height="20" style="object-fit: cover;">
                             <strong><%= msg.sender._id.toString() === currentUser._id.toString() ? 'Anda (Admin)' : msg.sender.name %></strong> 
                             - <%= new Date(msg.createdAt).toLocaleString('id-ID', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short'}) %>
                         </small>
@@ -93,7 +97,7 @@
         </div>
 
         <% if (ticket.status !== 'closed' && ticket.status !== 'resolved') { %>
-        <div class="reply-form mt-3 pt-3 border-top">
+        <div class="reply-form mt-3 pt-3 border-top" style="border-color: var(--nebula-border-color) !important;">
             <h5><i class="fas fa-reply me-1"></i> Balas Sebagai Admin</h5>
             <form action="/api/tickets/admin/<%= ticket._id %>/reply" method="POST" class="needs-loading needs-validation" novalidate>
                 <div class="mb-3">
@@ -101,7 +105,7 @@
                     <textarea class="form-control" id="message" name="message" rows="4" placeholder="Ketik balasan Anda di sini..." minlength="5" required></textarea>
                      <div class="invalid-feedback">Balasan minimal 5 karakter.</div>
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
+                <button type="submit" class="btn btn-primary btn-glow"><i class="fas fa-paper-plane me-1"></i> Kirim Balasan</button>
             </form>
         </div>
         <% } else { %>
@@ -112,6 +116,7 @@
     </div>
 </div>
 <style>
+    .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); }
     .message.sent .message-bubble { float: right; clear: both; }
     .message.received .message-bubble { float: left; clear: both; }
     .message-bubble { display: inline-block; }

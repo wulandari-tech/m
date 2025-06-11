@@ -1,46 +1,58 @@
-<h1><i class="fas fa-wallet"></i> Deposit Saldo</h1>
-<p>Saldo Anda saat ini: <strong>Rp <%= currentUser.balance.toLocaleString('id-ID') %></strong></p>
-<hr>
+<h1 class="text-glow-primary"><i class="fas fa-wallet"></i> Deposit Saldo</h1>
+<p>Saldo Anda saat ini: <strong class="text-success" style="text-shadow: 0 0 5px var(--nebula-green);">Rp <%= currentUser.balance.toLocaleString('id-ID') %></strong></p>
+<hr class="main-hr">
 
 <div class="row">
     <div class="col-md-7">
         <div class="card shadow-sm">
-            <div class="card-header bg-light py-3">
-                <h5 class="mb-0">Formulir Deposit</h5>
+            <div class="card-header py-3">
+                <h5 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>Formulir Deposit</h5>
             </div>
             <div class="card-body">
-                <form action="/api/balance/deposit" method="POST">
+                <form action="/api/balance/deposit" method="POST" class="needs-loading needs-validation" novalidate>
                     <div class="mb-3">
                         <label for="amount" class="form-label">Jumlah Deposit (Rp)</label>
-                        <input type="number" class="form-control" id="amount" name="amount" min="10000" step="1000" placeholder="Minimal Rp 10.000" required>
+                        <input type="number" class="form-control" id="amount" name="amount" min="1" step="1" placeholder="Minimal Rp 1" required>
+                         <div class="invalid-feedback">Jumlah deposit minimal Rp 1.</div>
                     </div>
                     <div class="mb-3">
                         <label for="payment_method_deposit" class="form-label">Metode Pembayaran:</label>
                         <select name="payment_method" id="payment_method_deposit" class="form-select" required>
+                            <option value="">Pilih Metode...</option>
                             <option value="midtrans">Midtrans (Lengkap: Bank Transfer, E-Wallet, Kartu Kredit, dll)</option>
                             <option value="qris_orkut">QRIS (Scan via HP untuk pembayaran)</option>
                         </select>
+                        <div class="invalid-feedback">Pilih metode pembayaran.</div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-paper-plane me-1"></i> Lanjutkan ke Pembayaran</button>
+                    <button type="submit" class="btn btn-primary w-100 btn-glow"><i class="fas fa-paper-plane me-1"></i> Lanjutkan ke Pembayaran</button>
                 </form>
             </div>
         </div>
     </div>
     <div class="col-md-5 mt-4 mt-md-0">
-        <h4><i class="fas fa-info-circle text-primary"></i> Petunjuk Deposit:</h4>
-        <ul class="list-unstyled">
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Masukkan jumlah deposit yang diinginkan (minimal Rp 10.000).</li>
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Pilih metode pembayaran yang Anda preferensikan.</li>
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Jika memilih <strong>Midtrans</strong>, Anda akan diarahkan ke halaman pembayaran aman Midtrans.</li>
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Jika memilih <strong>QRIS</strong>, kode QR akan ditampilkan untuk Anda scan menggunakan aplikasi pembayaran Anda.</li>
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Selesaikan pembayaran sesuai instruksi pada metode yang dipilih.</li>
-            <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Saldo akan otomatis bertambah setelah pembayaran berhasil dikonfirmasi oleh sistem.</li>
-        </ul>
+        <div class="card">
+            <div class="card-body">
+                <h4><i class="fas fa-info-circle text-info me-2"></i>Petunjuk Deposit:</h4>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Masukkan jumlah deposit (minimal Rp 1).</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Pilih metode pembayaran.</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i><strong>Midtrans</strong>: Anda akan diarahkan ke halaman aman Midtrans.</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i><strong>QRIS</strong>: Kode QR akan ditampilkan untuk di-scan.</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Selesaikan pembayaran sesuai instruksi.</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Saldo otomatis bertambah setelah konfirmasi.</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
 <div class="mt-5">
-    <h4><i class="fas fa-history"></i> Riwayat Deposit Terakhir</h4>
-    <%- include('../partials/transaction_list_simple', { transactions: (typeof recentTransactions != 'undefined' ? recentTransactions.filter(t => t.type === 'deposit') : []) }) %>
-    <a href="/dashboard/transactions" class="btn btn-link btn-sm ps-0">Lihat Semua Riwayat Transaksi <i class="fas fa-arrow-right"></i></a>
+    <h4><i class="fas fa-history me-2"></i>Riwayat Deposit Terakhir</h4>
+    <div class="card">
+        <div class="card-body p-0">
+             <%- include('../partials/transaction_list_simple', { transactions: (typeof recentTransactions != 'undefined' ? recentTransactions.filter(t => t.type === 'deposit') : []) }) %>
+        </div>
+    </div>
+    <a href="/dashboard/transactions" class="btn btn-link btn-sm ps-0 mt-2">Lihat Semua Riwayat Transaksi <i class="fas fa-arrow-right"></i></a>
 </div>
+<style> .text-glow-primary { text-shadow: 0 0 8px var(--primary-color); } </style>
