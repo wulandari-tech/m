@@ -1,20 +1,17 @@
-<div class="hero-section-lottie-focused text-white text-center mb-5 rounded-3 shadow-lg overflow-hidden">
-    <div class="lottie-prominent-container">
-        <iframe src="https://lottie.host/embed/197fa671-7cbe-46e4-9119-930fc716bc68/pYdCHnNhPg.lottie" style="width: 100%; height: 100%; border: none;"></iframe>
-    </div>
-    <div class="container hero-content-below-lottie pb-5 pt-4">
-        <h1 class="display-4 fw-bold mb-3 hero-title-glow"><i class="fas fa-rocket me-2"></i> Jelajahi Dunia Source Code</h1>
+<div class="hero-section text-white text-center py-5 mb-5 rounded-3 shadow-lg">
+    <div class="container">
+        <h1 class="display-3 fw-bold mb-3 hero-title-glow"><i class="fas fa-rocket me-2"></i> Jelajahi Dunia Source Code</h1>
         <p class="lead col-lg-8 mx-auto mb-4">Temukan, beli, atau sewa ribuan source code berkualitas untuk mempercepat proyek pengembangan Anda. Dari skrip sederhana hingga aplikasi kompleks.</p>
         <form action="/sc-list" method="GET" class="row g-3 justify-content-center mb-4">
             <div class="col-md-6 col-lg-5">
                 <div class="input-group input-group-lg">
-                    <input type="search" name="keyword" class="form-control" placeholder="Cari produk (misal: e-commerce php)..." aria-label="Cari produk">
+                    <input type="search" name="keyword" class="form-control" placeholder="Cari source code (misal: e-commerce php)..." aria-label="Cari source code">
                     <button class="btn btn-warning btn-glow" type="submit"><i class="fas fa-search"></i></button>
                 </div>
             </div>
         </form>
         <div>
-            <a href="/sc-list" class="btn btn-light btn-lg me-2" type="button"><i class="fas fa-layer-group me-1"></i> Lihat Semua Produk</a>
+            <a href="/sc-list" class="btn btn-light btn-lg me-2" type="button"><i class="fas fa-layer-group me-1"></i> Lihat Semua SC</a>
             <% if (!currentUser) { %>
                 <a href="/register" class="btn btn-outline-light btn-lg" type="button"><i class="fas fa-user-plus me-1"></i> Gabung Sekarang</a>
             <% } else if(currentUser.role === 'customer') { %>
@@ -32,8 +29,7 @@
             { name: "Aplikasi Android", icon: "fab fa-android", color: "var(--nebula-green)" },
             { name: "Script Python", icon: "fab fa-python", color: "var(--nebula-yellow-bright)" },
             { name: "Template HTML", icon: "fab fa-html5", color: "var(--nebula-orange)" },
-            { name: "Bot Script", icon: "fas fa-robot", color: "var(--nebula-blue-light)" },
-            { name: "Layanan Panel", icon: "fas fa-server", color: "var(--nebula-purple-light)" }
+            { name: "Bot Script", icon: "fas fa-robot", color: "var(--nebula-blue-light)" }
         ]; %>
         <% popularCategories.forEach(cat => { %>
             <div class="col">
@@ -51,7 +47,7 @@
 </section>
 
 <section class="mb-5">
-    <h2 class="text-center mb-4 section-title"><span><i class="fas fa-star me-2"></i>Produk Terbaru</span></h2>
+    <h2 class="text-center mb-4 section-title"><span><i class="fas fa-star me-2"></i>Source Code Terbaru</span></h2>
     <% if (latestSc && latestSc.length > 0) { %>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
         <% latestSc.forEach(sc => { %>
@@ -60,15 +56,9 @@
                 <button class="btn btn-sm quick-view-btn" data-sc-id="<%= sc._id %>" title="Lihat Cepat">
                     <i class="fas fa-eye"></i>
                 </button>
-                <% if (sc.productType === 'source_code' && sc.screenshots && sc.screenshots.length > 0) { %>
+                <% if (sc.screenshots && sc.screenshots.length > 0) { %>
                     <a href="/sc/<%= sc._id %>">
-                        <img src="<%= sc.screenshots[0] %>" class="card-img-top sc-card-img" alt="<%= sc.title %>">
-                    </a>
-                <% } else if (sc.productType === 'panel_service') { %>
-                     <a href="/sc/<%= sc._id %>">
-                        <div class="card-img-top sc-card-img-placeholder d-flex align-items-center justify-content-center text-muted">
-                            <i class="fas fa-server fa-3x text-info"></i>
-                        </div>
+                        <img src="/<%= sc.screenshots[0].replace(/\\/g, '/') %>" class="card-img-top sc-card-img" alt="<%= sc.title %>">
                     </a>
                 <% } else { %>
                     <a href="/sc/<%= sc._id %>">
@@ -89,10 +79,10 @@
                             </span>
                         <% } %>
                     </div>
-                    <% if (sc.price_buy !== null && sc.price_buy >= 0 && (sc.productType === 'panel_service' || !sc.is_for_rent_only)) { %>
-                        <p class="fw-bold sc-price-buy mb-1"><%= sc.price_buy === 0 ? 'GRATIS' : `Rp ${sc.price_buy.toLocaleString('id-ID')}` %></p>
-                    <% } else if (sc.productType === 'source_code' && sc.rental_options && sc.rental_options.length > 0) { %>
-                         <p class="fw-bold sc-price-rent mb-1">Mulai <%= sc.rental_options[0].price === 0 ? 'GRATIS' : `Rp ${sc.rental_options.reduce((min, p) => p.price < min ? p.price : min, sc.rental_options[0].price).toLocaleString('id-ID')}` %></p>
+                    <% if (!sc.is_for_rent_only && sc.price_buy) { %>
+                        <p class="fw-bold sc-price-buy mb-1">Rp <%= sc.price_buy.toLocaleString('id-ID') %></p>
+                    <% } else if (sc.rental_options && sc.rental_options.length > 0) { %>
+                         <p class="fw-bold sc-price-rent mb-1">Mulai Rp <%= sc.rental_options.reduce((min, p) => p.price < min ? p.price : min, sc.rental_options[0].price).toLocaleString('id-ID') %></p>
                     <% } %>
                 </div>
                 <div class="card-footer pt-0">
@@ -103,7 +93,7 @@
         <% }) %>
     </div>
     <% } else { %>
-    <p class="text-center text-muted">Belum ada produk terbaru.</p>
+    <p class="text-center text-muted">Belum ada source code yang tersedia.</p>
     <% } %>
 </section>
 
@@ -124,7 +114,7 @@
                 <div class="card h-100 shadow-sm testimonial-card">
                     <div class="card-body text-center">
                         <img src="https://via.placeholder.com/80/00E0E8/000?text=User" class="rounded-circle mb-2" alt="User Testimonial">
-                        <p class="fst-italic">"Sebagai seller, saya merasa mudah menjual produk saya di sini. Prosesnya transparan."</p>
+                        <p class="fst-italic">"Sebagai seller, saya merasa mudah menjual source code saya di sini. Prosesnya transparan."</p>
                         <h6 class="fw-bold">- Seller Handal</h6>
                     </div>
                 </div>
@@ -133,7 +123,7 @@
                 <div class="card h-100 shadow-sm testimonial-card">
                     <div class="card-body text-center">
                         <img src="https://via.placeholder.com/80/FFD700/000?text=User" class="rounded-circle mb-2" alt="User Testimonial">
-                        <p class="fst-italic">"Dukungan pelanggan responsif dan harga produknya terjangkau. Recommended!"</p>
+                        <p class="fst-italic">"Dukungan pelanggan responsif dan harga source code nya terjangkau. Recommended!"</p>
                         <h6 class="fw-bold">- Pebisnis Online</h6>
                     </div>
                 </div>
@@ -154,7 +144,7 @@
           <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
           </div>
-          <p class="mt-2">Memuat detail produk...</p>
+          <p class="mt-2">Memuat detail source code...</p>
         </div>
       </div>
       <div class="modal-footer">
