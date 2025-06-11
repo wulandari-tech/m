@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const SourceCode = require('../models/SourceCode');
-const User = require('../models/User');
+const SourceCode = require('../models/sourceCode');
+const User = require('../models/user');
 
 router.get('/api-docs', (req, res) => {
     res.render('pages/api_docs', {
