@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
     name: { type: String, required: true, trim: true },
@@ -21,17 +22,20 @@ const userSchema = new mongoose.Schema({
     pterodactylDefaultLocationId: { type: Number },
     pterodactylDefaultNestId: { type: Number },
     pterodactylDefaultEggId: { type: Number },
+    apiKey: { type: String, unique: true, sparse: true }, // sparse: true agar unique index tidak error untuk dokumen tanpa apiKey
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     createdAt: { type: Date, default: Date.now }
 });
 
 userSchema.pre('save', async function(next) {
-    if (!this.isModified('password')) {
-        return next();
+    if (this.isModified('password')) {
+        const salt = await bcrypt.genSalt(10);
+        this.password = await bcrypt.hash(this.password, salt);
     }
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    if (!this.apiKey) { // Generate API key jika belum ada
+        this.apiKey = crypto.randomBytes(32).toString('hex');
+    }
     next();
 });
 
@@ -39,4 +43,10 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-module.exports = mongoose.models.User || mongoose.model('User', userSchema);
+userSchema.methods.generateApiKey = function() {
+    this.apiKey = crypto.randomBytes(32).toString('hex');
+    return this.apiKey;
+};
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+module.exports = User;
