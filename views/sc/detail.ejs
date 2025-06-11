@@ -49,15 +49,15 @@
         <% if (sc.productType === 'source_code' && sc.screenshots && sc.screenshots.length > 0) { %>
             <div id="carouselScDetailScreenshots" class="carousel slide shadow-sm rounded border mb-4" data-bs-ride="carousel" style="border-color: var(--nebula-border-color) !important;">
                 <div class="carousel-indicators">
-                    <% sc.screenshots.forEach((ss_path, index) => { %>
+                    <% sc.screenshots.forEach((ss_url, index) => { %>
                         <button type="button" data-bs-target="#carouselScDetailScreenshots" data-bs-slide-to="<%= index %>" class="<%= index === 0 ? 'active' : '' %>" aria-current="<%= index === 0 ? 'true' : 'false' %>" aria-label="Slide <%= index + 1 %>"></button>
                     <% }) %>
                 </div>
                 <div class="carousel-inner rounded" style="max-height: 450px; overflow: hidden;">
-                    <% sc.screenshots.forEach((ss_path, index) => { %>
+                    <% sc.screenshots.forEach((ss_url, index) => { %>
                         <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
-                            <a href="/<%= ss_path.replace(/\\/g, '/') %>" data-bs-toggle="lightbox" data-gallery="sc-gallery-detail">
-                                <img src="/<%= ss_path.replace(/\\/g, '/') %>" class="d-block w-100" alt="Screenshot <%= index + 1 %> - <%= sc.title %>" style="object-fit: contain; max-height: 450px; background-color: var(--nebula-bg-secondary);">
+                            <a href="<%= ss_url %>" data-bs-toggle="lightbox" data-gallery="sc-gallery-detail">
+                                <img src="<%= ss_url %>" class="d-block w-100" alt="Screenshot <%= index + 1 %> - <%= sc.title %>" style="object-fit: contain; max-height: 450px; background-color: var(--nebula-bg-secondary);">
                             </a>
                         </div>
                     <% }) %>
@@ -201,7 +201,7 @@
                                 <p class="mb-2">Source code ini sudah menjadi milik Anda.</p>
                                 <% if (sc.filePath && existingOrder.downloadLink) { %>
                                 <hr class="my-2" style="border-color: rgba(255,255,255,0.3);">
-                                <a href="<%= existingOrder.downloadLink %>" class="btn btn-success w-100 mt-auto btn-glow" download>
+                                <a href="<%= existingOrder.downloadLink.startsWith('/') ? existingOrder.downloadLink : '/' + existingOrder.downloadLink %>" class="btn btn-success w-100 mt-auto btn-glow" download>
                                     <i class="fas fa-download me-1"></i> Unduh (<%= sc.filePath.split('.').pop().toUpperCase() %>)
                                 </a>
                                 <% } else { %>
@@ -220,7 +220,7 @@
                                 <p class="small mb-0"><i class="fas fa-spinner fa-spin me-1"></i> Panel sedang disiapkan...</p>
                                 <% } else if (existingOrder.deliveryStatus === 'provisioning_failed') { %>
                                 <hr class="my-2" style="border-color: rgba(255,255,255,0.3);">
-                                <p class="small mb-0 text-danger"><i class="fas fa-times-circle me-1"></i> Gagal membuat panel. Hubungi support.</p>
+                                <p class="small mb-0 text-danger"><i class="fas fa-times-circle me-1"></i> Gagal membuat panel. <%= existingOrder.notes || 'Hubungi support.' %></p>
                                 <% } %>
                             <% } %>
                         </div>
@@ -230,7 +230,7 @@
                             <p class="mb-1">Aktif hingga: <br><strong><%= new Date(existingOrder.rentalEndDate).toLocaleString('id-ID', { dateStyle:'full', timeStyle:'short' }) %></strong>.</p>
                             <% if (sc.filePath && new Date() <= new Date(existingOrder.rentalEndDate) && existingOrder.downloadLink) { %>
                                 <hr class="my-2" style="border-color: rgba(255,255,255,0.3);">
-                                <a href="<%= existingOrder.downloadLink %>" class="btn btn-info w-100 mt-auto btn-glow" download><i class="fas fa-file-code me-1"></i> Unduh File Sewa</a>
+                                <a href="<%= existingOrder.downloadLink.startsWith('/') ? existingOrder.downloadLink : '/' + existingOrder.downloadLink %>" class="btn btn-info w-100 mt-auto btn-glow" download><i class="fas fa-file-code me-1"></i> Unduh File Sewa</a>
                             <% } else if (sc.filePath && new Date() > new Date(existingOrder.rentalEndDate)) { %>
                                 <hr class="my-2" style="border-color: rgba(255,255,255,0.3);">
                                 <button class="btn btn-outline-secondary w-100 mt-auto disabled"><i class="fas fa-times-circle me-1"></i> Masa Sewa Habis</button>
