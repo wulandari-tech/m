@@ -53,4 +53,9 @@ router.post('/api/user/profile/api-settings',
     userController.updateApiSettings
 );
 
+router.post('/api/user/profile/regenerate-apikey',
+    ensureAuthenticated,
+    userController.regenerateApiKey
+);
+
 module.exports = router;
